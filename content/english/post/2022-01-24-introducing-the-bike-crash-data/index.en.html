@@ -1,0 +1,213 @@
+---
+title: Introducing the bike crash data
+author: Sighvatur Davidsson
+date: '2022-01-24'
+slug: []
+categories: []
+tags:
+  - datavisualisation
+  - eda
+  - gis
+  - mapping
+---
+
+<script src="{{< blogdown/postref >}}index.en_files/header-attrs/header-attrs.js"></script>
+
+
+<pre class="r"><code># Workspace setup 
+pacman::p_load(tidyverse,     # essentials
+               ggeasy,        # ggplot-function wrapper for easing workflow
+               cowplot,       # for aligning plots
+               sf,            # allows for working with spatial data
+               tmap,          # mapping package 
+               hrbrthemes)    # cool plotting theme
+
+# Set standard theme
+theme_set(theme_ipsum_ps())</code></pre>
+<pre class="r"><code># Read in data
+bike_crash &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/bike_crash.rds&quot;)
+
+glimpse(bike_crash)</code></pre>
+<pre><code>## Rows: 12,173
+## Columns: 63
+## $ x            &lt;dbl&gt; -78.88390, -78.78280, -80.69782, -80.47932, -78.90445, -8…
+## $ y            &lt;dbl&gt; 36.03949, 35.75112, 35.08473, 35.68440, 34.99943, 35.6666…
+## $ objectid_1   &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…
+## $ ambulance_r  &lt;fct&gt; Yes, Yes, Yes, Yes, Yes, Yes, No, Yes, Yes, No, Yes, Yes,…
+## $ bike_age     &lt;dbl&gt; 11, 20, 37, 30, 45, 58, 51, 13, 18, 39, 19, 35, 40, 31, 1…
+## $ bike_age_grp &lt;fct&gt; 11-15, 20-24, 30-39, 30-39, 40-49, 50-59, 50-59, 11-15, 1…
+## $ bike_alc_drg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No…
+## $ bike_alc_flg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;N…
+## $ bike_dir     &lt;chr&gt; &quot;With Traffic&quot;, &quot;Facing Traffic&quot;, NA, &quot;With Traffic&quot;, &quot;Wi…
+## $ bike_injury  &lt;chr&gt; &quot;Suspected Minor Injury&quot;, &quot;Possible Injury&quot;, &quot;Suspected M…
+## $ bike_pos     &lt;chr&gt; &quot;Sidewalk / Crosswalk / Driveway Crossing&quot;, &quot;Sidewalk / C…
+## $ bike_race    &lt;chr&gt; &quot;Black&quot;, &quot;Hispanic&quot;, &quot;Black&quot;, &quot;White&quot;, &quot;Black&quot;, &quot;White&quot;, …
+## $ bike_sex     &lt;chr&gt; &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;…
+## $ city         &lt;chr&gt; &quot;Durham&quot;, &quot;Cary&quot;, &quot;Stallings&quot;, &quot;Salisbury&quot;, &quot;Fayetteville…
+## $ county       &lt;chr&gt; &quot;Durham&quot;, &quot;Wake&quot;, &quot;Union&quot;, &quot;Rowan&quot;, &quot;Cumberland&quot;, &quot;Rowan&quot;…
+## $ crash_alcoh  &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;N…
+## $ crash_day    &lt;fct&gt; Tuesday, Friday, Monday, Friday, Friday, Wednesday, Satur…
+## $ crash_grp    &lt;chr&gt; &quot;Parallel Paths - Other Circumstances&quot;, &quot;Motorist Failed …
+## $ crash_hour   &lt;fct&gt; 16, 9, 17, 17, 12, 9, 19, 15, 8, 9, 21, 11, 20, 15, 14, 8…
+## $ crash_id     &lt;dbl&gt; 101878313, 101885911, 101886055, 101890155, 101899756, 10…
+## $ crash_loc    &lt;chr&gt; &quot;Non-Intersection&quot;, &quot;Intersection&quot;, &quot;Non-Roadway&quot;, &quot;Inter…
+## $ crash_month  &lt;fct&gt; January, January, January, January, January, January, Jan…
+## $ crash_sevr   &lt;fct&gt; Suspected Minor Injury, Possible Injury, Suspected Minor …
+## $ crash_type   &lt;chr&gt; &quot;Bicyclist Ride Out - Parallel Path&quot;, &quot;Motorist Drive Out…
+## $ crash_year   &lt;fct&gt; 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007, 200…
+## $ developmen   &lt;chr&gt; &quot;Residential&quot;, &quot;Residential&quot;, &quot;Commercial&quot;, &quot;Commercial&quot;,…
+## $ drvr_age     &lt;dbl&gt; 35, 64, 39, NA, 51, NA, 61, 18, NA, NA, 24, 27, 21, 17, 6…
+## $ drvr_age_grp &lt;fct&gt; 30-39, 60-69, 30-39, NA, 50-59, NA, 60-69, 0-19, NA, 70+,…
+## $ drvr_alc_drg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No…
+## $ drvr_alc_flg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, NA, &quot;No&quot;,…
+## $ drvr_injury  &lt;chr&gt; &quot;No Injury&quot;, &quot;No Injury&quot;, &quot;No Injury&quot;, NA, &quot;No Injury&quot;, N…
+## $ drvr_race    &lt;chr&gt; &quot;White&quot;, &quot;White&quot;, &quot;White&quot;, NA, &quot;Black&quot;, NA, &quot;White&quot;, &quot;Bla…
+## $ drvr_sex     &lt;chr&gt; &quot;Male&quot;, &quot;Male&quot;, &quot;Female&quot;, NA, &quot;Female&quot;, NA, &quot;Male&quot;, &quot;Fema…
+## $ drvr_veh_typ &lt;chr&gt; &quot;Passenger Car&quot;, &quot;Passenger Car&quot;, &quot;Passenger Car&quot;, &quot;Sport…
+## $ hit_run      &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, …
+## $ latitude     &lt;dbl&gt; 36.03949, 35.75112, 35.08473, 35.68440, 34.99943, 35.6666…
+## $ light_cond   &lt;fct&gt; Daylight, Daylight, Dusk, Daylight, Daylight, Daylight, D…
+## $ locality     &lt;fct&gt; Urban (&gt;70% Developed), Urban (&gt;70% Developed), Urban (&gt;7…
+## $ longitude    &lt;dbl&gt; -78.88390, -78.78280, -80.69782, -80.47932, -78.90445, -8…
+## $ num_bics_ain &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_bics_bin &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_bics_cin &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_bics_kil &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_bics_noi &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_bics_tot &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_bics_uin &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+## $ num_lanes    &lt;dbl&gt; 1, 3, 2, 2, 2, 2, 2, 2, 5, 2, 4, 6, 4, 2, 2, 5, 2, 2, 2, …
+## $ num_units    &lt;dbl&gt; 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, …
+## $ rd_bent      &lt;chr&gt; &quot;Straight&quot;, &quot;Straight&quot;, &quot;Straight&quot;, &quot;Straight&quot;, &quot;Straight…
+## $ rd_hill      &lt;chr&gt; &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, …
+## $ rd_class     &lt;chr&gt; &quot;Local Street&quot;, &quot;Local Street&quot;, &quot;Public Vehicular Area&quot;, …
+## $ rd_conditio  &lt;chr&gt; &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Cl…
+## $ rd_config    &lt;chr&gt; &quot;Two-Way, Divided, Unprotected Median&quot;, &quot;Two-Way, Divided…
+## $ rd_defects   &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, NA,…
+## $ rd_feature   &lt;chr&gt; &quot;No Special Feature&quot;, &quot;Four-Way Intersection&quot;, &quot;No Specia…
+## $ rd_surface   &lt;chr&gt; &quot;Smooth Asphalt&quot;, &quot;Smooth Asphalt&quot;, &quot;Smooth Asphalt&quot;, &quot;Sm…
+## $ region       &lt;chr&gt; &quot;Piedmont&quot;, &quot;Piedmont&quot;, &quot;Piedmont&quot;, &quot;Piedmont&quot;, &quot;Coastal&quot;…
+## $ rural_urban  &lt;chr&gt; &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Ru…
+## $ speed_limit  &lt;fct&gt; 30 - 35  MPH, 30 - 35  MPH, 20 - 25  MPH, 30 - 35  MPH, 3…
+## $ traff_cntrl  &lt;chr&gt; &quot;No Control Present&quot;, &quot;Stop And Go Signal&quot;, &quot;No Control P…
+## $ weather      &lt;chr&gt; &quot;Clear&quot;, &quot;Clear&quot;, &quot;Cloudy&quot;, &quot;Cloudy&quot;, &quot;Clear&quot;, &quot;Clear&quot;, &quot;…
+## $ workzone     &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No…
+## $ objectid     &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…</code></pre>
+<pre class="r"><code># Crashes over time
+plot_grid(
+  bike_crash %&gt;% count(crash_year) %&gt;% 
+    ggplot(aes(x = crash_year, y = n)) + 
+    geom_bar(stat = &quot;identity&quot;) + 
+    ylab(&quot;&quot;) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %&gt;% 
+    count(crash_month) %&gt;% 
+    ggplot(aes(x = crash_month, y = n)) + 
+    geom_bar(stat = &quot;identity&quot;) + 
+    ylab(&quot;&quot;) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %&gt;% 
+    count(crash_hour) %&gt;% 
+    ggplot(aes(x = crash_hour, y = n)) + 
+    geom_bar(stat = &quot;identity&quot;) + 
+    ylab(&quot;&quot;) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %&gt;% 
+    count(crash_day) %&gt;% 
+    ggplot(aes(x = crash_day, y = n)) + 
+    geom_bar(stat = &quot;identity&quot;) + 
+    ylab(&quot;&quot;) +
+    theme(axis.text.x=element_text(angle=90, hjust=1)))</code></pre>
+<pre><code>## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database
+
+## Warning in grid.Call(C_stringMetric, as.graphicsAnnot(x$label)): font family
+## &#39;IBMPlexSans&#39; not found in PostScript font database</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<pre class="r"><code># Crash_severity
+bind_rows(
+  bike_crash %&gt;% 
+    group_by(crash_year, ambulance_r)  %&gt;% 
+    count(crash_sevr, ambulance_r) %&gt;% 
+    na.omit() %&gt;% 
+    summarise(n = sum(n)) %&gt;%
+    transmute(crash_year, crash_sevr = &quot;Total&quot;, ambulance_r, n) %&gt;% 
+    ungroup(),
+  bike_crash %&gt;% 
+    group_by(crash_year, ambulance_r) %&gt;% 
+    count(crash_sevr, ambulance_r) %&gt;%  
+    na.omit() %&gt;% 
+    ungroup()
+  ) %&gt;% mutate(crash_sevr = factor(x = crash_sevr, 
+                             levels = c(&quot;No Injury&quot;, 
+                                        &quot;Possible Injury&quot;, 
+                                        &quot;Suspected Minor Injury&quot;, 
+                                        &quot;Suspected Serious Injury&quot;, 
+                                        &quot;Killed&quot;, 
+                                        &quot;Total&quot;)),
+               ambulance_r = case_when(ambulance_r == &quot;Yes&quot; ~ &quot;Ambulance required&quot;, TRUE ~ &quot;No ambulance required&quot;)) %&gt;% 
+  ggplot(aes(x = crash_year, y = n, fill = ambulance_r)) + 
+  geom_bar(stat = &quot;identity&quot;) + facet_wrap(vars(crash_sevr), scales=&quot;free_y&quot;) + 
+  easy_rotate_x_labels() +
+  labs(x = element_blank(), y = element_blank()) + 
+  theme(legend.position = &quot;bottom&quot;, legend.title = element_blank()) +
+  #scale_fill_discrete(labels = c(&quot;No ambulance required&quot;, &quot;Ambulance required&quot;)) +
+  scale_fill_manual(&quot;legend&quot;, values = c(&quot;No ambulance required&quot; = &quot;gray80&quot;, &quot;Ambulance required&quot; = &quot;tomato2&quot;)) </code></pre>
+<pre><code>## `summarise()` has grouped output by &#39;crash_year&#39;. You can override using the `.groups` argument.</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-1-2.png" width="672" /></p>
+<pre class="r"><code># Read in counties geometries
+nc_counties &lt;- 
+  USAboundaries::us_counties() %&gt;% 
+  select(13, namelsad) %&gt;% 
+  rename(state = state_name, county = namelsad) %&gt;% 
+  filter(state == &quot;North Carolina&quot;) %&gt;% 
+  select(-state) %&gt;% 
+  st_transform(&quot;NAD83&quot;) # Most common american CRS 
+
+# Initial map
+st_as_sf(bike_crash, coords = c(x = &quot;x&quot;, y = &quot;y&quot;), crs = &quot;NAD83&quot;) %&gt;% 
+tm_shape() + 
+  tm_dots(alpha = 0.2) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(main.title = &quot;Bikecrashes in North Carolina (2007-2019)&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            main.title.size = 1) </code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/Mapping%201-1.png" width="672" /></p>

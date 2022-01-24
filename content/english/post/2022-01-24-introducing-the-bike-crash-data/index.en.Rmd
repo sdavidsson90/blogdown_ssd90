@@ -1,0 +1,118 @@
+---
+title: Introducing the bike crash data
+author: Sighvatur Davidsson
+date: '2022-01-24'
+slug: []
+categories: []
+tags:
+  - datavisualisation
+  - eda
+  - gis
+  - mapping
+---
+
+
+```{r Workspace setup}
+# Workspace setup 
+pacman::p_load(tidyverse,     # essentials
+               ggeasy,        # ggplot-function wrapper for easing workflow
+               cowplot,       # for aligning plots
+               sf,            # allows for working with spatial data
+               tmap,          # mapping package 
+               hrbrthemes)    # cool plotting theme
+
+# Set standard theme
+theme_set(theme_ipsum_ps())
+```
+
+
+```{r Read dataset}
+# Read in data
+bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
+
+glimpse(bike_crash)
+```
+
+
+```{r}
+# Crashes over time
+plot_grid(
+  bike_crash %>% count(crash_year) %>% 
+    ggplot(aes(x = crash_year, y = n)) + 
+    geom_bar(stat = "identity") + 
+    ylab("") +
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %>% 
+    count(crash_month) %>% 
+    ggplot(aes(x = crash_month, y = n)) + 
+    geom_bar(stat = "identity") + 
+    ylab("") +
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %>% 
+    count(crash_hour) %>% 
+    ggplot(aes(x = crash_hour, y = n)) + 
+    geom_bar(stat = "identity") + 
+    ylab("") +
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %>% 
+    count(crash_day) %>% 
+    ggplot(aes(x = crash_day, y = n)) + 
+    geom_bar(stat = "identity") + 
+    ylab("") +
+    theme(axis.text.x=element_text(angle=90, hjust=1)))
+
+# Crash_severity
+bind_rows(
+  bike_crash %>% 
+    group_by(crash_year, ambulance_r)  %>% 
+    count(crash_sevr, ambulance_r) %>% 
+    na.omit() %>% 
+    summarise(n = sum(n)) %>%
+    transmute(crash_year, crash_sevr = "Total", ambulance_r, n) %>% 
+    ungroup(),
+  bike_crash %>% 
+    group_by(crash_year, ambulance_r) %>% 
+    count(crash_sevr, ambulance_r) %>%  
+    na.omit() %>% 
+    ungroup()
+  ) %>% mutate(crash_sevr = factor(x = crash_sevr, 
+                             levels = c("No Injury", 
+                                        "Possible Injury", 
+                                        "Suspected Minor Injury", 
+                                        "Suspected Serious Injury", 
+                                        "Killed", 
+                                        "Total")),
+               ambulance_r = case_when(ambulance_r == "Yes" ~ "Ambulance required", TRUE ~ "No ambulance required")) %>% 
+  ggplot(aes(x = crash_year, y = n, fill = ambulance_r)) + 
+  geom_bar(stat = "identity") + facet_wrap(vars(crash_sevr), scales="free_y") + 
+  easy_rotate_x_labels() +
+  labs(x = element_blank(), y = element_blank()) + 
+  theme(legend.position = "bottom", legend.title = element_blank()) +
+  #scale_fill_discrete(labels = c("No ambulance required", "Ambulance required")) +
+  scale_fill_manual("legend", values = c("No ambulance required" = "gray80", "Ambulance required" = "tomato2")) 
+```
+
+
+```{r Mapping 1}
+# Read in counties geometries
+nc_counties <- 
+  USAboundaries::us_counties() %>% 
+  select(13, namelsad) %>% 
+  rename(state = state_name, county = namelsad) %>% 
+  filter(state == "North Carolina") %>% 
+  select(-state) %>% 
+  st_transform("NAD83") # Most common american CRS 
+
+# Initial map
+st_as_sf(bike_crash, coords = c(x = "x", y = "y"), crs = "NAD83") %>% 
+tm_shape() + 
+  tm_dots(alpha = 0.2) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(main.title = "Bikecrashes in North Carolina (2007-2019)", 
+            main.title.position = "center",
+            main.title.fontfamily = "IBM Plex Sans",
+            main.title.size = 1) 
+
+```
+
