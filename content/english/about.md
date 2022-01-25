@@ -11,7 +11,7 @@ title: About
 
 **Who am I?**
 
-I'm a data analyst with a background in social science. I'm especially interested in combining these two, and apply my data science skills to societal problems and decision-making in the public sector.
+I'm a data analyst with a background in social science. I'm especially interested in using data science to support decision-making in the public sector.
 
 **What is this?**
 
