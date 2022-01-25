@@ -11,10 +11,11 @@ title: About
 
 **Who am I?**
 
-I'm a data analyst with a background in social science. I'm especially interested in applying my data science skills to decision-making in the societal problems facing the public sector.
+I'm a data analyst with a background in social science. I'm especially interested in combining these two, and apply my data science skills to societal problems and decision-making in the public sector.
 
 **What is this?**
 
-I regularly do my own data science projects in order to improve my skills. On this blog I plan to gather these projects and put them on display for others to see. 
+In order to practice my coding skills, I regularly do my own data science projects. On this blog I plan to gather these projects and put them on display for others to see. At the moment I solely work in R, and strive to find solutions using the tidyverse-principles. 
 
+This blog was created using Hugo/Blogdown using the Anatole theme. Feel free to fork it from my Github! 
 
