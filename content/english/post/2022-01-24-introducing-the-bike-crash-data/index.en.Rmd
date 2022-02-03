@@ -5,10 +5,7 @@ date: '2022-01-24'
 slug: []
 categories: []
 tags:
-- introducing
 ---
-
-
 
 ```{r, echo = FALSE}
 # Load packages
@@ -18,8 +15,6 @@ pacman::p_load(tidyverse)
 bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
 
 ```
-
-I don't want to bore you with the initial data cleaning, but rather go straight to introducing this dataset I will be working with in my first few blog posts. 
 
 **Short introduction to dataset**
 
