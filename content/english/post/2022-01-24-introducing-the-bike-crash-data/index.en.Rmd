@@ -1,118 +1,60 @@
 ---
-title: Introducing the bike crash data
+title: Introducing the bike crash dataset
 author: Sighvatur Davidsson
 date: '2022-01-24'
 slug: []
 categories: []
 tags:
-  - datavisualisation
-  - eda
-  - gis
-  - mapping
+- introducing
 ---
 
 
-```{r Workspace setup}
-# Workspace setup 
-pacman::p_load(tidyverse,     # essentials
-               ggeasy,        # ggplot-function wrapper for easing workflow
-               cowplot,       # for aligning plots
-               sf,            # allows for working with spatial data
-               tmap,          # mapping package 
-               hrbrthemes)    # cool plotting theme
 
-# Set standard theme
-theme_set(theme_ipsum_ps())
-```
+```{r, echo = FALSE}
+# Load packages
+pacman::p_load(tidyverse)
 
-
-```{r Read dataset}
-# Read in data
+# Read in dataset
 bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
 
+```
+
+I don't want to bore you with the initial data cleaning, but rather go straight to introducing this dataset I will be working with in my first few blog posts. 
+
+**Short introduction to dataset**
+
+This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities (North Carolina Division of Motor Vehicles). The information is sourced from police reports, and has manually been put in tabular form by the University of North Carolina. Precision of registrations is therefore assumed to be high.
+
+There is however a problem with documentation. We don't have explanations for the variables' meaning but have to rely on their names (which are often abbrevations) and the content of the registrations. 
+
+Also the dataset is rather text-heavy, and therefore a corresponding lack of numeric values. This might pose a problem to certain machine learning methods, but we will have to adapt our analysis to methods fit for this kind of dataset.
+
+**Why was this dataset chosen?**
+
+First of all this dataset was used in my final thesis in my Data Analytics education at Dania Academy. An important criterion for choosing a dataset to work with was to avoid being acused of plagiarizing. The dataset was posted on Kaggle, but no machine learning solutions had been posted. 
+
+
+**Looking at the dataset**
+
+Let's have a quick look at the dataset
+```{r}
 glimpse(bike_crash)
 ```
 
+If we think of the coordinate variable (representing crash location) as one we have 52 variables.
+Most of the variables are of the character-type and unfortunately few are of the numeric type. A regression-based prediciton model will therefore most likely not be fit for this dataset. 
+
+Here's an example of how text heavy some of the variables are:
 
 ```{r}
-# Crashes over time
-plot_grid(
-  bike_crash %>% count(crash_year) %>% 
-    ggplot(aes(x = crash_year, y = n)) + 
-    geom_bar(stat = "identity") + 
-    ylab("") +
-    theme(axis.text.x=element_text(angle=90, hjust=1)),
-  bike_crash %>% 
-    count(crash_month) %>% 
-    ggplot(aes(x = crash_month, y = n)) + 
-    geom_bar(stat = "identity") + 
-    ylab("") +
-    theme(axis.text.x=element_text(angle=90, hjust=1)),
-  bike_crash %>% 
-    count(crash_hour) %>% 
-    ggplot(aes(x = crash_hour, y = n)) + 
-    geom_bar(stat = "identity") + 
-    ylab("") +
-    theme(axis.text.x=element_text(angle=90, hjust=1)),
-  bike_crash %>% 
-    count(crash_day) %>% 
-    ggplot(aes(x = crash_day, y = n)) + 
-    geom_bar(stat = "identity") + 
-    ylab("") +
-    theme(axis.text.x=element_text(angle=90, hjust=1)))
-
-# Crash_severity
-bind_rows(
-  bike_crash %>% 
-    group_by(crash_year, ambulance_r)  %>% 
-    count(crash_sevr, ambulance_r) %>% 
-    na.omit() %>% 
-    summarise(n = sum(n)) %>%
-    transmute(crash_year, crash_sevr = "Total", ambulance_r, n) %>% 
-    ungroup(),
-  bike_crash %>% 
-    group_by(crash_year, ambulance_r) %>% 
-    count(crash_sevr, ambulance_r) %>%  
-    na.omit() %>% 
-    ungroup()
-  ) %>% mutate(crash_sevr = factor(x = crash_sevr, 
-                             levels = c("No Injury", 
-                                        "Possible Injury", 
-                                        "Suspected Minor Injury", 
-                                        "Suspected Serious Injury", 
-                                        "Killed", 
-                                        "Total")),
-               ambulance_r = case_when(ambulance_r == "Yes" ~ "Ambulance required", TRUE ~ "No ambulance required")) %>% 
-  ggplot(aes(x = crash_year, y = n, fill = ambulance_r)) + 
-  geom_bar(stat = "identity") + facet_wrap(vars(crash_sevr), scales="free_y") + 
-  easy_rotate_x_labels() +
-  labs(x = element_blank(), y = element_blank()) + 
-  theme(legend.position = "bottom", legend.title = element_blank()) +
-  #scale_fill_discrete(labels = c("No ambulance required", "Ambulance required")) +
-  scale_fill_manual("legend", values = c("No ambulance required" = "gray80", "Ambulance required" = "tomato2")) 
+bike_crash %>% count(crash_type, sort = T) 
 ```
 
+Not only is the length of the text, but also the sheer number of categories (65!). This variable will therefore problably be used in my modelling (unless we look specifically at a certain situation). But take a look at this one:
 
-```{r Mapping 1}
-# Read in counties geometries
-nc_counties <- 
-  USAboundaries::us_counties() %>% 
-  select(13, namelsad) %>% 
-  rename(state = state_name, county = namelsad) %>% 
-  filter(state == "North Carolina") %>% 
-  select(-state) %>% 
-  st_transform("NAD83") # Most common american CRS 
-
-# Initial map
-st_as_sf(bike_crash, coords = c(x = "x", y = "y"), crs = "NAD83") %>% 
-tm_shape() + 
-  tm_dots(alpha = 0.2) + 
-  tm_shape(nc_counties) + 
-  tm_borders(alpha = 0.4, lwd = 1.3) + 
-  tm_layout(main.title = "Bikecrashes in North Carolina (2007-2019)", 
-            main.title.position = "center",
-            main.title.fontfamily = "IBM Plex Sans",
-            main.title.size = 1) 
-
+```{r}
+bike_crash %>% count(drvr_veh_typ, sort = T) %>% print(n = 100)
 ```
+
+We are a bit luckier this time. We have 25 categories but for 19 of them we have less than 100 registrations. Are we to gather these in an other category? Maybe. But for now we'll leave them as they are. 
 
