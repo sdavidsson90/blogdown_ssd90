@@ -168,7 +168,7 @@ cowplot::plot_grid(
     count(crash_hour) %>% 
     ggplot(aes(x = crash_hour, y = n)) + 
     geom_col()+ 
-    theme(axis.text.x=element_text(angle=45, hjust=1)),
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
   bike_crash %>% 
     count(crash_day) %>% 
     ggplot(aes(x = crash_day, y = n)) + 
