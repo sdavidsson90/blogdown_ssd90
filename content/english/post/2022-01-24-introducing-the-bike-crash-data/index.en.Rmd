@@ -1,45 +1,69 @@
 ---
-title: Introducing the bike crash dataset
-author: Sighvatur Davidsson
-date: '2022-01-24'
+title: "Introducing the bike crash dataset"
+author: "Sighvatur S. Davidsson"
+date: '2022-02-04'
 slug: []
 categories: []
-tags:
+tags: []
 ---
 
-```{r, echo = FALSE}
-# Load packages
-pacman::p_load(tidyverse)
+```{r , echo= FALSE}
+# Supress warnings
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 
-# Read in dataset
-bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
+# Makes sure error messages get printed in english
+Sys.setenv(lang = "en_US")
+
+options(scipen = 999)
 
 ```
 
-**Short introduction to dataset**
+For my first few blog posts, I plan on using this *bike crash*-dataset that I also used for my final thesis studying Data Analytics at Dania Academy. I have already done some [preprocessing](https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R), and now I want to present some of the challanges and oppurtunities that present themselves in working with this dataset.
+
+**Short introduction to the dataset:**
 
 This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities (North Carolina Division of Motor Vehicles). The information is sourced from police reports, and has manually been put in tabular form by the University of North Carolina. Overall quality of registrations is therefore assumed to be high.
 
 There is however a problem with documentation. We don't have explanations for the variables' meaning but have to rely on their names (which are often abbrevations) and the content of the registrations. 
 
-Also the dataset is rather text-heavy, and therefore a corresponding lack of numeric values. This might pose a problem to certain machine learning methods, but we will have to adapt our analysis to methods fit for this kind of dataset.
+The original dataset can be accesed [here](https://www.pedbikeinfo.org/pbcat_nc/_bicycle.cfm), and officially provided information about the dataset [here](https://www.pedbikeinfo.org/pbcat_nc/_bicycle-about.cfm).
 
 **Why was this dataset chosen?**
 
-First of all this dataset was used in my final thesis in my Data Analytics education at Dania Academy. An important criterion for choosing a dataset to work with was to avoid being acused of plagiarizing. The dataset was posted on Kaggle, but no machine learning solutions had been posted. 
+An important criterion for choosing a dataset to work with was to avoid being acused of plagiarizing. The dataset was posted on Kaggle, but no machine learning solutions had been posted. 
 
 
-**Looking at the dataset**
+**Let's have a quick look at the dataset**
+```{r Workspace, echo = TRUE}
+# Load packages
+pacman::p_load(tidyverse)
 
-Let's have a quick look at the dataset
-```{r}
-glimpse(bike_crash)
+# Read in datasets
+bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
+
+# Let's take a quick look at the properties of the data
+skimr::skim(bike_crash)
 ```
 
-If we think of the coordinate variable (representing crash location) as one we have 52 variables.
-Most of the variables are of the character-type and unfortunately few are of the numeric type. A regression-based prediciton model will therefore most likely not be fit for this dataset. 
+If we think of the coordinate variable (representing crash location) as one variable - we have a total number of 52 variables. Most of the variables (34) have been read as character variables, and some have been coded as factors in the preprocessing I did prior to this post. Excluding the *coordinates* and *crash_id-variable*, only the age of driver and cyclist, number of lanes and the number of units involved have been read as actual numeric variables. 
 
-Here's an example of how text heavy some of the variables are:
+An important point to note is therefore, that the dataset has a qualitative nature and is often quite text heavy (as will be pointed out shortly). This will pose a problem to certain machine learning methods, but we will have to adapt our analysis to methods fit for this kind of dataset - classification methods and geographic analysis tools might be a good place to start. 
+
+##### How many missing registrations?
+Also we have a number of missing values across the dataset. This is also a problem for some models (eg. the standard random forest model), but we can work around this. 
+
+```{r}
+# How many missings are there across the dataset?
+tibble(
+  "variable_name" = colnames(bike_crash),
+  "number_of_rows" = nrow(bike_crash),
+  "number_of_na" = map_int(bike_crash, ~(sum(is.na(.x)))),
+  "pct_missing" = number_of_na/number_of_rows*100) %>% 
+  mutate(pct_missing = case_when(pct_missing == Inf ~ 0, TRUE ~ pct_missing)) %>% 
+  print(n = ncol(bike_crash))
+```
+
+##### How text heavy are the variables?
 
 ```{r}
 bike_crash %>% count(crash_type, sort = T) 
@@ -53,11 +77,20 @@ bike_crash %>% count(drvr_veh_typ, sort = T) %>% print(n = 100)
 
 We are a bit luckier this time. We have 25 categories but for 19 of them we have less than 100 registrations. Are we to gather these in an other category? Maybe. But for now we'll leave them as they are. 
 
-**Initial visualising of the data: *Where* do accidents occurr?**
+
+### **Initial visualisation of the data: *Where* do accidents occurr?**
 
 First of all it would be interesting to see where accidents occur. Mapping crash locations over such a large area gives us a quite cluttered picture. Adjusting the transparency of the dots can provide us with a clearer picture but other visualisation methods might yield a more correct visualisation. I will show how that can be done in a later post! [upcoming link] 
 
 ```{r}
+# Load some additional packages
+pacman::p_load(sf,             # Essential package for working with geographic data
+               tmap            # Mapping tool
+               )
+
+# Read in counties geometry
+nc_counties <- read_rds("~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds")
+
 # Wehere do bike crashes occur?
 st_as_sf(bike_crash, coords = c(x = "x", y = "y"), crs = "NAD83") %>%
   tm_shape() + 
@@ -78,8 +111,10 @@ The map also suggests that a majority of the crashes take place in urban areas, 
 Here's a map of the population size by county:
 
 ```{r}
+# Read in population data
 nc_pop <- read_rds("~/R/Projects/bike_crash/processed_data/ncpop_09_19.rds") %>% st_as_sf()
 
+# Create population chloropeth map
 tm_shape(nc_pop) +
   tm_polygons("est_2015", title = "Population size (jenks)", style = "jenks") + 
   tm_layout(main.title = "Population size by county (2015)", 
@@ -88,16 +123,17 @@ tm_shape(nc_pop) +
             main.title.size = .95,
             frame = TRUE,
             legend.title.fontfamily = "IBM Plex Sans",
+            legend.title.size = 0.85,
             legend.text.fontfamily = "IBM Plex Sans",
-            legend.text.size = 0.8,
-            legend.width = 5,
+            legend.text.size = 0.6,
+            legend.width = 8,
             legend.height = 10) 
 ```
 
 And a simple test for correlation confirms this picture. The correlation coefficient for population size and number of accidents pr. county is 0.95. Very high!
 
 ```{r}
-# Declare geometry
+# We need to specify the geometry once and for all this time
 bike_crash <- st_as_sf(bike_crash, coords = c(x = "x", y = "y"), crs = "NAD83")
 
 # Count number of accidents pr. counties
@@ -108,20 +144,17 @@ nc_pop <- nc_pop %>%
 cor.test(x = nc_pop$est_2015, y =  nc_pop$n_accidents, method = "pearson")
 
 ```
-**Initial visualising of the data: *When* do accidents ocurr?**
+### ** *When* do accidents ocurr?**
 
-Plotting the time dimension also gives us a better understanding of underlying causes behind the accidents.
-
-- Unfortunately the number of accidents seems to have remained on the same level in the period 2007 - 2019. There are fluctuations but - based on a simple visualisation - I would be hesitant to conclude that we have observed a decrease in the number of accidents over the years. It would also be interesting to compare this to the development of traffic volume in the state (or in specified areas) but unfortunately we don't have acces to this information. 
-- There seems to be a seasonality effect at play. The number of accidents begins rising in March and by May we have reached a level which is held until September, when it begins to drop again. This is likely correlated to traffic volumes - ie. more people use their bikes when weather conditions are better. This is howee
-- The 
-
-```{r}
+```{r, warning = FALSE}
 # It's better to drop the geometry before making for summarising operations. This speeds up the process significantly!
 bike_crash <- st_drop_geometry(bike_crash)
 
+# Set standard theming
+theme_set(hrbrthemes::theme_ipsum_ps())
+
 # Plotting crashes over time
-plot_grid(
+cowplot::plot_grid(
   bike_crash %>% count(crash_year) %>% 
     ggplot(aes(x = crash_year, y = n)) + 
     geom_col() + 
@@ -134,12 +167,26 @@ plot_grid(
   bike_crash %>% 
     count(crash_hour) %>% 
     ggplot(aes(x = crash_hour, y = n)) + 
-    geom_col() + 
-    theme(axis.text.x=element_text(angle=90, hjust=1)),
+    geom_col()+ 
+    theme(axis.text.x=element_text(angle=45, hjust=1)),
   bike_crash %>% 
     count(crash_day) %>% 
     ggplot(aes(x = crash_day, y = n)) + 
     geom_col() + 
     theme(axis.text.x=element_text(angle=90, hjust=1)))
 ```
+
+Plotting the time dimension also gives us a better understanding of underlying causes behind the accidents. 
+
+- Unfortunately the number of accidents seems to have remained on the same level in the period 2007 - 2019. There are fluctuations but - based on a simple visualisation - I would be hesitant to conclude that we have observed a decrease in the number of accidents over the years. It would also be interesting to compare this to the development of traffic volume in the state (or in specified areas) but unfortunately we don't have acces to this information. 
+- There seems to be a seasonality effect at play. The number of accidents begins rising in March and by May we have reached a level which is held until September, when it begins to drop again. This is likely correlated with traffic volumes - ie. more people use their bikes when weather conditions are better. This is however a speculation not backed by data.
+- Also the number of accident increases slowly from 5 in the morning until 5 in the evening where we see a steep drop. 
+- Finally we see that less accidents take place during the weekends. I will abstain from speculating why. 
+
+# Concluding remarks:
+- I have introduced the dataset I will be working with in my first few blogposts.
+- The dataset is highly qualitative in nature and is probably best fit for classification-type models and experimenting geographic analysis tools.
+
+Stay tuned!
+
 
