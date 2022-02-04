@@ -18,7 +18,7 @@ bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
 
 **Short introduction to dataset**
 
-This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities (North Carolina Division of Motor Vehicles). The information is sourced from police reports, and has manually been put in tabular form by the University of North Carolina. Precision of registrations is therefore assumed to be high.
+This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities (North Carolina Division of Motor Vehicles). The information is sourced from police reports, and has manually been put in tabular form by the University of North Carolina. Overall quality of registrations is therefore assumed to be high.
 
 There is however a problem with documentation. We don't have explanations for the variables' meaning but have to rely on their names (which are often abbrevations) and the content of the registrations. 
 
@@ -52,4 +52,94 @@ bike_crash %>% count(drvr_veh_typ, sort = T) %>% print(n = 100)
 ```
 
 We are a bit luckier this time. We have 25 categories but for 19 of them we have less than 100 registrations. Are we to gather these in an other category? Maybe. But for now we'll leave them as they are. 
+
+**Initial visualising of the data: *Where* do accidents occurr?**
+
+First of all it would be interesting to see where accidents occur. Mapping crash locations over such a large area gives us a quite cluttered picture. Adjusting the transparency of the dots can provide us with a clearer picture but other visualisation methods might yield a more correct visualisation. I will show how that can be done in a later post! [upcoming link] 
+
+```{r}
+# Wehere do bike crashes occur?
+st_as_sf(bike_crash, coords = c(x = "x", y = "y"), crs = "NAD83") %>%
+  tm_shape() + 
+  tm_dots(alpha = 0.1) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(frame = TRUE,
+            main.title = "Crashes in North Carolina 2007-2019", 
+            main.title.position = "center",
+            main.title.fontfamily = "IBM Plex Sans",
+            main.title.size = 1,
+            ) 
+```
+
+
+The map also suggests that a majority of the crashes take place in urban areas, and less so in rural areas. This of course not an earth shaking insight, but it is certainly not an irrelevant point for further analysis. 
+
+Here's a map of the population size by county:
+
+```{r}
+nc_pop <- read_rds("~/R/Projects/bike_crash/processed_data/ncpop_09_19.rds") %>% st_as_sf()
+
+tm_shape(nc_pop) +
+  tm_polygons("est_2015", title = "Population size (jenks)", style = "jenks") + 
+  tm_layout(main.title = "Population size by county (2015)", 
+            main.title.position = "center",
+            main.title.fontfamily = "IBM Plex Sans",
+            main.title.size = .95,
+            frame = TRUE,
+            legend.title.fontfamily = "IBM Plex Sans",
+            legend.text.fontfamily = "IBM Plex Sans",
+            legend.text.size = 0.8,
+            legend.width = 5,
+            legend.height = 10) 
+```
+
+And a simple test for correlation confirms this picture. The correlation coefficient for population size and number of accidents pr. county is 0.95. Very high!
+
+```{r}
+# Declare geometry
+bike_crash <- st_as_sf(bike_crash, coords = c(x = "x", y = "y"), crs = "NAD83")
+
+# Count number of accidents pr. counties
+nc_pop <- nc_pop %>% 
+  mutate(n_accidents = lengths(st_intersects(., bike_crash)))
+
+# Correlations test 
+cor.test(x = nc_pop$est_2015, y =  nc_pop$n_accidents, method = "pearson")
+
+```
+**Initial visualising of the data: *When* do accidents ocurr?**
+
+Plotting the time dimension also gives us a better understanding of underlying causes behind the accidents.
+
+- Unfortunately the number of accidents seems to have remained on the same level in the period 2007 - 2019. There are fluctuations but - based on a simple visualisation - I would be hesitant to conclude that we have observed a decrease in the number of accidents over the years. It would also be interesting to compare this to the development of traffic volume in the state (or in specified areas) but unfortunately we don't have acces to this information. 
+- There seems to be a seasonality effect at play. The number of accidents begins rising in March and by May we have reached a level which is held until September, when it begins to drop again. This is likely correlated to traffic volumes - ie. more people use their bikes when weather conditions are better. This is howee
+- The 
+
+```{r}
+# It's better to drop the geometry before making for summarising operations. This speeds up the process significantly!
+bike_crash <- st_drop_geometry(bike_crash)
+
+# Plotting crashes over time
+plot_grid(
+  bike_crash %>% count(crash_year) %>% 
+    ggplot(aes(x = crash_year, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %>% 
+    count(crash_month) %>% 
+    ggplot(aes(x = crash_month, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %>% 
+    count(crash_hour) %>% 
+    ggplot(aes(x = crash_hour, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %>% 
+    count(crash_day) %>% 
+    ggplot(aes(x = crash_day, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)))
+```
 
