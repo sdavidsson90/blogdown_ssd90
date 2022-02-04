@@ -77,8 +77,9 @@ bike_crash %>% count(drvr_veh_typ, sort = T) %>% print(n = 100)
 
 We are a bit luckier this time. We have 25 categories but for 19 of them we have less than 100 registrations. Are we to gather these in an other category? Maybe. But for now we'll leave them as they are. 
 
+### Initial visualisation of the dataset
 
-### **Initial visualisation of the data: *Where* do accidents occurr?**
+##### *Where* do accidents occurr?
 
 First of all it would be interesting to see where accidents occur. Mapping crash locations over such a large area gives us a quite cluttered picture. Adjusting the transparency of the dots can provide us with a clearer picture but other visualisation methods might yield a more correct visualisation. I will show how that can be done in a later post! [upcoming link] 
 
@@ -144,7 +145,7 @@ nc_pop <- nc_pop %>%
 cor.test(x = nc_pop$est_2015, y =  nc_pop$n_accidents, method = "pearson")
 
 ```
-### ** *When* do accidents ocurr?**
+### *When* do accidents ocurr?
 
 ```{r, warning = FALSE}
 # It's better to drop the geometry before making for summarising operations. This speeds up the process significantly!
