@@ -33,7 +33,7 @@ The original dataset can be accesed [here](https://www.pedbikeinfo.org/pbcat_nc/
 An important criterion for choosing a dataset to work with was to avoid being acused of plagiarizing. The dataset was posted on Kaggle, but no machine learning solutions had been posted. 
 
 
-**Let's have a quick look at the dataset**
+### Let's have a quick look at the dataset
 ```{r Workspace, echo = TRUE}
 # Load packages
 pacman::p_load(tidyverse)
