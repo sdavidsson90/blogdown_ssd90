@@ -18,20 +18,15 @@ options(scipen = 999)
 
 ```
 
-For my first few blog posts, I plan on using this *bike crash*-dataset that I also used for my final thesis studying Data Analytics at Dania Academy. I have already done some [preprocessing](https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R), and now I want to present some of the challanges and oppurtunities that present themselves in working with this dataset.
+For my first few blog posts, I plan on using a dataset describing *bike crashes* in North Carolina. I also used this very dataset in my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid being acused of plagiarizing. The dataset has been posted on Kaggle, but no machine learning solutions have been posted. 
+
+I have already done some [preprocessing](https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R), and now I want to present some of the challanges and oppurtunities that present themselves in working with this dataset. 
 
 **Short introduction to the dataset:**
 
-This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities (North Carolina Division of Motor Vehicles). The information is sourced from police reports, and has manually been put in tabular form by the University of North Carolina. Overall quality of registrations is therefore assumed to be high.
-
-There is however a problem with documentation. We don't have explanations for the variables' meaning but have to rely on their names (which are often abbrevations) and the content of the registrations. 
+This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities: North Carolina Division of Motor Vehicles. The information has been sourced from police reports, and manually been put in a tabular form by the University of North Carolina. Overall quality of registrations is therefore assumed to be high. There is however a problem with documentation. We don't have explanations for the variables' meaning but have to rely on their names (which are often abbrevations) and the content of the registrations.
 
 The original dataset can be accesed [here](https://www.pedbikeinfo.org/pbcat_nc/_bicycle.cfm), and officially provided information about the dataset [here](https://www.pedbikeinfo.org/pbcat_nc/_bicycle-about.cfm).
-
-**Why was this dataset chosen?**
-
-An important criterion for choosing a dataset to work with was to avoid being acused of plagiarizing. The dataset was posted on Kaggle, but no machine learning solutions had been posted. 
-
 
 ### Let's have a quick look at the dataset
 ```{r Workspace, echo = TRUE}
@@ -41,7 +36,7 @@ pacman::p_load(tidyverse)
 # Read in datasets
 bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
 
-# Let's take a quick look at the properties of the data
+# Get number of datatypes
 skimr::skim(bike_crash)
 ```
 
@@ -53,6 +48,11 @@ An important point to note is therefore, that the dataset has a qualitative natu
 Also we have a number of missing values across the dataset. This is also a problem for some models (eg. the standard random forest model), but we can work around this. 
 
 ```{r}
+# Number of empty cells
+(sum(is.na(bike_crash)) /
+# Number of cells
+(ncol(bike_crash) * nrow(bike_crash)) * 100)
+
 # How many missings are there across the dataset?
 tibble(
   "variable_name" = colnames(bike_crash),
