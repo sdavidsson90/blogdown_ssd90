@@ -184,6 +184,7 @@ Plotting the time dimension also gives us a better understanding of underlying c
 - Also the number of accident increases slowly from 5 in the morning until 5 in the evening where we see a steep drop. 
 - Finally we see that less accidents take place during the weekends. I will abstain from speculating why. 
 
+
 # Concluding remarks:
 - I have introduced the dataset I will be working with in my first few blogposts.
 - The dataset is highly qualitative in nature and is probably best fit for classification-type models and experimenting geographic analysis tools.

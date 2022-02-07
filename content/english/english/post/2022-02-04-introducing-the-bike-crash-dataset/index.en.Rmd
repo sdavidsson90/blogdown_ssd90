@@ -1,9 +1,0 @@
----
-title: Introducing the "bike_crash" dataset
-author: John Doe
-date: '2022-02-04'
-slug: []
-categories: []
-tags: []
----
-

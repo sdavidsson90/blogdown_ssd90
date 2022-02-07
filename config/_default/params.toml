@@ -29,12 +29,6 @@ listDateFormat = "2/1/2006"
 # readMore = true
 # postSectionName = "blog"
 
-
-[simpleAnalytics]
-# enable = true
-# customurl = "https://analytics.example.com"
-
-
 # Google analytics (tilføjet af mig)
 gtagId = "G-GYJ2KPEQG5" # også tilføjet af mig
 
