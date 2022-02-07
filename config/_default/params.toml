@@ -34,6 +34,10 @@ listDateFormat = "2/1/2006"
 # enable = true
 # customurl = "https://analytics.example.com"
 
+
+# Google analytics (tilføjet af mig)
+gtagId = "G-GYJ2KPEQG5" # også tilføjet af mig
+
 ## Math settings
 [math]
 enable = false  # options: true, false. Enable math support globally, default: false. You can always enable math on per page.
