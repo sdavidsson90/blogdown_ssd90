@@ -1,4 +1,7 @@
 
+# Google analytics (tilføjet af mig)
+gtagId = "G-61LNEQWN02" 
+
 # Sideopsætning
 title = "Sighvatur S. Davidsson"
 author = "Sighvatur S. Davidsson"
@@ -8,8 +11,7 @@ profilePicture = "images/profile.jpg"
 keywords = "sighvatur"
 favicon = "favicons/"
 
-# Google analytics (tilføjet af mig)
-gtagId = "G-61LNEQWN02" 
+
 
 
 
