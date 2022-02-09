@@ -14,7 +14,8 @@ Sys.setenv(lang = "en_US")
 options(scipen = 999)
 ```
 
-For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This is very same dataset is also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with [an example](https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d) of some simple EDA attached - but no machine learning solutions. 
+### An outline for this post: 
+For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with [an example of some simple EDA](https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d) attached - but no machine learning solutions. 
 
 My first four blog posts will therefore be a presentation of some of the learnings I did in that process. Their subject matters are:
 
@@ -58,7 +59,7 @@ Only 10 variables have been read as numeric. Excluding the *object_id* and *date
 
 An important point to note is therefore, that the dataset has a rather qualitative nature. This poses a problem to certain kinds of machine learning methods, but we can adapt our analysis and learning goals to methods that are more fit for this kind if dataset. 
 
-##### How *text heavy* are the variables?
+#### How *text heavy* are the variables?
 
 ```{r}
 bike_crash %>% count(crash_type, sort = T) 
@@ -72,10 +73,10 @@ Instead take a look at this one:
 bike_crash %>% count(drvr_veh_typ, sort = T) %>% print(n = 100)
 ```
 
-We are a bit luckier this time. The level of qualitative learnings we can make from this variable is high, and the number of categories is less (25). This is however still a very high number, but for some of them we see less than 100 registrations. Should we gather these in an *other* category? Maybe. But for now we'll leave them as they are. 
+We are a bit luckier this time. The level of detail we can make out from this variable is high, and the number of categories is less (25). This is however still a very high number, but for some of them we see less than 100 registrations. Should we gather these in an *other* category? Maybe. But for now we'll leave them as they are. 
 
 
-##### How many missing registrations?
+#### How many missing registrations?
 Prior to further work on the dataset it is also a good idea to get an impression of missing values across the dataset, as this also might be a cause for concern for some models (eg. the standard random forest model). 
 
 ```{r}
@@ -115,7 +116,7 @@ We have an overall missing percentage of 3 % which seems quite good. Some models
 
 ### Initial visualisation of the dataset
 
-##### *Where* do accidents occurr?
+#### *Where* do accidents occurr?
 
 First of all it would be interesting to see where accidents occur. Mapping crash locations over such a large area gives us a quite cluttered picture. Adjusting the transparency of the dots can provide us with a clearer picture but other visualisation methods might yield a more correct visualisation. I will show how that can be done in a later post! [upcoming link]()
 
@@ -183,7 +184,7 @@ cor.test(x = nc_pop$est_2015, y =  nc_pop$n_accidents, method = "pearson")
 
 ```
 
-### *When* do accidents ocurr?
+#### *When* do accidents ocurr?
 
 ```{r, warning = FALSE}
 # It's better to drop the geometry before making for summarising operations. This speeds up the process significantly!
@@ -224,8 +225,10 @@ Plotting the time dimension also gives us a better understanding of underlying c
 - Finally we see that less accidents take place during the weekends. I will abstain from speculating why. 
 
 
-# Concluding remarks:
+### Concluding remarks:
 - I have introduced the dataset I will be working with in my first few blogposts.
-- The dataset is highly qualitative in nature and is probably best fit for classification-type models and experimenting geographic analysis tools.
+- The dataset contains detailed observations of more than 12000 bike crashes in North Carolina in the period 2007 - 2019.
+- The bike crashes are described in 52 distinct variables whereof many are quite text heavy. Only few variables have actual numeric meaning.
+- The dataset is therefore highly qualitative in nature.
 
 Stay tuned!

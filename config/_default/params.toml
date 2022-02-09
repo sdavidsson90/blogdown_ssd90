@@ -1,4 +1,5 @@
 
+# Sideopsætning
 title = "Sighvatur S. Davidsson"
 author = "Sighvatur S. Davidsson"
 description = """ I do data science. This is my blog. Have a look around!"""
@@ -6,6 +7,13 @@ description = """ I do data science. This is my blog. Have a look around!"""
 profilePicture = "images/profile.jpg"
 keywords = "sighvatur"
 favicon = "favicons/"
+
+# Google analytics (tilføjet af mig)
+gtagId = "G-4GZN2W3CE9" # også tilføjet af mig
+
+
+
+
 
 # example ["css/custom.css"]
 customCss = []
@@ -29,8 +37,7 @@ listDateFormat = "2/1/2006"
 # readMore = true
 # postSectionName = "blog"
 
-# Google analytics (tilføjet af mig)
-gtagId = "G-GYJ2KPEQG5" # også tilføjet af mig
+
 
 ## Math settings
 [math]

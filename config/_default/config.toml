@@ -10,7 +10,7 @@ enableRobotsTXT = true
 #disqusShortname = ""
 
 # Google Analytics
-# googleAnalytics = "G-xxxxxxxxx"
+googleAnalytics = "UA-218094543-1"
 
 # Syntax highlighting
 pygmentsUseClasses = true   
@@ -31,4 +31,4 @@ pygmentsCodefencesGuessSyntax = true
 displayMode = "light"
 disableThemeSwitcher = false 
 
-contentratio = 0.66
+contentratio = 0.666
