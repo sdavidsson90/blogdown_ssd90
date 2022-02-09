@@ -1,8 +1,5 @@
 
-# Google analytics (tilføjet af mig)
-# gtagId = "G-61LNEQWN02" 
-
-# Sideopsætning
+# Side opsætning
 title = "Sighvatur S. Davidsson"
 author = "Sighvatur S. Davidsson"
 description = """ I do data science. This is my blog. Have a look around!"""
@@ -10,9 +7,6 @@ description = """ I do data science. This is my blog. Have a look around!"""
 profilePicture = "images/profile.jpg"
 keywords = "sighvatur"
 favicon = "favicons/"
-
-
-
 
 
 
