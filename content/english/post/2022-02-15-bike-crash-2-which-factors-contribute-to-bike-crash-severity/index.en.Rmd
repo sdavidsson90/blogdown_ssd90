@@ -1,0 +1,406 @@
+---
+title: 'Bike Crash 2: Which factors contribute to bike crash severity?'
+author: "Sighvatur Davidsson"
+date: '2022-02-15'
+slug: []
+categories: []
+tags: []
+---
+
+
+```{r Options, echo= FALSE}
+# Supress warnings
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+# Makes sure error messages get printed in english
+Sys.setenv(lang = "en_US")
+
+options(scipen = 999,
+        blogdown.knit.on_save = FALSE # Mapping can take some time. Make sure we're not knitting '.Rmd' to '.html' everytime we click save
+        )
+
+library(blogdown)
+# blogdown::check_site() # Note to self: Try running this if anything goes wrong.
+```
+
+### Outline for this post
+In this post I will be using machine learning methods to extrude insights that can be gained from the **bike crash**-dataset, that I introduced in my [previous post](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/). In the previous post we looked at the information that has been made available in the dataset, and we concluded that we are working with a dataset that is highly qualitative in nature, hence we must choose appropriate machine learning methods. This is the second part in the series. The other posts are:
+
+1. Introducing the bike crash-dataset
+2. Mapping bike crashes with GIS-tools using the command line
+3. Identifying environmental factors that affect the number of crashes
+4. How can these insights make an impact? 
+
+### The business problem
+Data analytics is essentially useless if we don't pay close attention to the core business problem we are working on. After all the purpose of machine learning is to gain insights that can be presented to decision makers in order for them to base their decisions on actual data - as opposed to guesswork or general assumptions. I will be discussing this topic further in [Bike Crash 4](google.com). Of course this project  does not have an actual decision maker on the receiving end, but as this is a critical consideration in data analytics, I don't want to leave it out. 
+
+#### Vision zero
+In 2015 the North Carolinian transport authorities adopted a new policy for designing the states transportation network. The adoption of this policy legally obliges the authorities to base their traffic improvement measures on the principles of the Vision Zero project. This project strives to reduce the number of traffic related immobilities or deaths to zero. 
+
+The principles are derived from a set of ethical imperatives:
+- Citizens lives or mobility can never be traded for other societal advantages
+- When citizens lives or mobility are affected preventive measures must be taken
+
+Tingvall & Haworth (1999) describe this as a paradigm shift in traffic planning.
+
+#### Our objective
+Thus the question we are trying to answer is:
+
+## *Can we identify risk factors that increase the severity of accidents?*
+
+Using this knowledge we would be able to allocate ressources to improving the conditions that have the biggest effect on the seriousness of accidents. 
+
+```{r Workspace setup}
+# Load packages
+pacman::p_load(tidyverse,                      # essentials
+               sf, tmap,                       # mapping tools
+               plotly,                         # interactive plotting
+               hrbrthemes,                     # cool plotting theme
+               tidymodels, baguette, themis    # modeling tools
+)
+               
+# Set standard plotting theme
+theme_set(theme_ipsum_ps())
+
+# Read in datasets
+bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
+```
+
+#### Outcome variable
+
+We will we using the variable *crash_sevr* as our outcome variable.
+
+```{r}
+# Before selecting I like to save the unedited dataset to memory
+bike_crash0 <- bike_crash
+
+# Initial plotting of our outcome variable
+(
+  bike_crash %>%
+  count(crash_sevr) %>% 
+  ggplot(aes(x = crash_sevr, y = n, fill = crash_sevr, text = paste0(crash_sevr,": ", n))) +
+  geom_col(fill = "grey60") +
+  ggtitle("Severity of crashes (2007 - 2019)") +
+  labs(x = "", y = "") +
+  theme(axis.text.x=element_text(angle = 30, hjust = 1))
+ ) %>% 
+  ggplotly(tooltip = c("text")) %>% 
+  config(displayModeBar = F)
+
+```
+
+Here we see the frequency distribution of the variable categories. 
+
+As we saw in part 1: this is very much a qualitative dataset. An obvious choice of machine learning methods is therefore to go with the classification type models. This calls for a recoding of our variable to a dichotomous outcome. 
+
+```{r}
+# Outcome variable should be binary with "positive" outcome marked as 1.
+
+# # # # RECODING # # # # # 
+# 
+#   We're predicting crash severeness, so the encoding will be:
+#     1: Serious injury or killed
+#     0: Minor injuries
+bike_crash <- bike_crash %>% 
+
+  # First we filter out NA's
+  filter(!is.na(crash_sevr)) %>% 
+  mutate( 
+    # Then we use an if_else statement to gather the two most serious categories into 'Major Injuries' and the rest to 'Minor Injuries'
+    crash_sevr = if_else(crash_sevr %in% c("Killed", "Suspected Serious Injury"), "Major Injuries", "Minor Injuries"),
+   
+    # Finally; most classification models require outcome variable to be coded as factor
+    crash_sevr = factor(crash_sevr, levels = c("Major Injuries", "Minor Injuries")))
+
+#  Double check recoded variable
+contrasts(bike_crash$crash_sevr)
+
+# Plotting of outcome variable after recoding
+(
+  bike_crash %>%
+  count(crash_sevr) %>%
+  mutate(crash_sevr = fct_rev(crash_sevr)) %>% 
+  ggplot(aes(x = crash_sevr, y = n, fill = crash_sevr, text = paste0(crash_sevr,": ", n))) +
+  geom_col(fill = "grey60") +
+  labs(x = "", y = "") +
+  theme(axis.text.x=element_text(angle = 30, hjust = 1)) 
+ ) %>% 
+  ggplotly(tooltip = c("text")) %>% 
+  config(displayModeBar = F)
+```
+
+Here's an updated frequency distribution of our recoded outcome variable. It is very important to notice that we have class imbalance - ie. more than 90 % of the observations are minor injuries. Remember; our objective is to prevent the major injuries by identifying their contributing causes. Left untouched this distribution will almost certainly harm our ability to create a model that can correctly predict the most severe cases. This will be dealt with in the modelling section.
+
+#### Predictor variables
+In my modeling for this post I will be focusing on environmental variables - ie. factors in the physical environment that can be improved.
+
+```{r}
+# Predictor variables
+bike_crash <- bike_crash %>% 
+    select(
+      # Outcome variable
+      crash_sevr, 
+      # Environmental variables
+      starts_with("rd_"), light_cond, locality, num_lanes, 
+      rural_urban, traff_cntrl, speed_limit, workzone, crash_loc, developmen
+      ) 
+
+# Option: Omit all NA
+# bike_crash <- na.omit(bike_crash)
+# Det gør vi ikke, da vi får en bedre model (på alle parametre), hvis vi lader være
+
+colnames(bike_crash)
+```
+
+
+
+#### Modelling
+
+I will be using testing two different methods against each other; logistic regression and a random forrest with bagging. 
+
+```{r}
+# I will be modelling using the tidymodels package
+# This package was loaded in a previous chunk
+
+# Tidymodels offer control over which model engine to select. 
+
+# Logistic regression
+logreg <- logistic_reg() %>% 
+  set_engine(engine = "glm") %>%  
+  set_mode("classification")
+
+# Bagged random forest (reqires baguette package)
+bagged <- bag_tree(min_n = 10) %>%
+  set_engine("rpart", times = 25) %>%
+  set_mode("classification")
+
+# Define model rest metrics
+custom_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
+```
+
+We of course have to split the dataset into a train and test set. 
+
+```{r}
+# Data split for training model
+set.seed(512)
+bike_split <- initial_split(bike_crash, prop = 0.75, strata = crash_sevr) 
+bike_train <- bike_split %>% training()
+bike_test <- bike_split %>% testing()
+
+# Cross validation for folds for higher prediction accuracy
+set.seed(666)
+bike_folds <- vfold_cv(bike_train, v = 2, prop = 0.75,  strata = crash_sevr)
+
+# Define model test metrics
+bike_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
+```
+
+
+```{r}
+# Formula
+formula <- formula(crash_sevr ~ .)
+
+# Define recipe
+bike_recipe <- 
+  recipe(formula, data = bike_train) %>% 
+  step_dummy(all_nominal(), -all_outcomes()) 
+
+# Logistic regression workflow
+bc_logreg_wf <- workflow() %>% 
+  add_recipe(bike_recipe)  %>% 
+  add_model(logreg)
+
+# Random forest workflow
+bc_bagged_wf <- workflow() %>% 
+  add_recipe(bike_recipe)  %>% 
+  add_model(bagged)
+
+# We wan't to collect predictions
+ctrl_preds <- control_resamples(save_pred = TRUE)
+
+# Let's fit!
+bc_logreg_fit <- fit_resamples(bc_logreg_wf, bike_folds, metrics = custom_metrics,  control = ctrl_preds) 
+bc_bagged_fit <- fit_resamples(bc_bagged_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+
+
+library(flextable)
+
+# And evaluate
+collect_metrics(bc_logreg_fit) %>% 
+  select(-.config, -n) %>% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %>% 
+  flextable() %>% add_header_lines("Logistic regression model")
+
+collect_metrics(bc_bagged_fit) %>% 
+  select(-.config, -n) %>% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %>% 
+  flextable() %>% add_header_lines("Bagged random forest model")
+```
+
+```{r}
+# We could adjust threshold and get higher sensitivty, but we would be less accurate
+
+# Because of class imbalance we need to try resampling methods
+set.seed(444)
+bike_recipe_rose <- 
+bike_recipe %>% 
+  step_rose(crash_sevr) 
+
+set.seed(555)
+bike_recipe_down <- 
+bike_recipe %>% 
+  step_downsample(crash_sevr) 
+
+# ROSE
+bc_logreg_rose_wf <- workflow() %>% 
+  add_recipe(bike_recipe_rose)  %>% 
+  add_model(logreg)
+
+bc_bagged_rose_wf <- workflow() %>% 
+  add_recipe(bike_recipe_rose)  %>% 
+  add_model(bagged)
+
+# DOWN
+bc_logreg_down_wf <- workflow() %>% 
+  add_recipe(bike_recipe_down)  %>% 
+  add_model(logreg)
+
+bc_bagged_down_wf <- workflow() %>% 
+  add_recipe(bike_recipe_down)  %>% 
+  add_model(bagged)
+
+# Let's fit!
+bc_logreg_rose_fit <- fit_resamples(bc_logreg_rose_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+bc_bagged_rose_fit <- fit_resamples(bc_bagged_rose_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+
+bc_logreg_down_fit <- fit_resamples(bc_logreg_down_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+bc_bagged_down_fit <- fit_resamples(bc_bagged_down_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+
+
+# And evaluate
+collect_metrics(bc_logreg_rose_fit) %>%
+  select(-.config, -n) %>% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %>% 
+  flextable() %>% 
+  add_header_lines("Logistic regression model (with rose-resampling)")
+
+collect_metrics(bc_bagged_rose_fit) %>% 
+  select(-.config, -n) %>% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %>% 
+  flextable() %>% 
+  add_header_lines("Bagged random forest model (with rose-resampling)")
+
+collect_metrics(bc_logreg_down_fit) %>% 
+  select(-.config, -n) %>% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %>% 
+  flextable() %>% 
+add_header_lines("Logistic regression model (with downsampling)")
+
+collect_metrics(bc_bagged_down_fit) %>% 
+  select(-.config, -n) %>% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %>% 
+  flextable() %>% 
+  add_header_lines("Bagged random forest model (with downsampling)")
+
+# This one is the winner
+collect_metrics(bc_logreg_rose_fit)
+
+# Conf_mat
+(tibble(
+  pred = collect_predictions(bc_logreg_rose_fit)$.pred_class,
+  truth = bike_train$crash_sevr) %>% 
+  conf_mat(truth = truth, estimate = pred) %>% autoplot(type = "heatmap") + 
+    ggtitle("Confusion matrix for logistic  \n regression model with rose-resampling") +
+    theme(panel.grid.major = element_blank() )) %>% 
+  ggplotly() %>% 
+  config(displayModeBar = F)
+```
+
+```{r}
+# EVALUATE MODEL ON TEST DATA
+bike_last_fit <- last_fit(bc_logreg_rose_wf, bike_split)
+
+# Test_metrics
+results <- tibble(
+  estimate = bike_last_fit$.predictions[[1]]$.pred_class,
+  truth = bike_test$crash_sevr)
+
+accuracy(results, truth, estimate)
+
+bind_rows(
+collect_metrics(bike_last_fit),
+sensitivity(results, truth, estimate),
+specificity(results, truth, estimate))%>%
+  select(-.config, -.estimator) %>% 
+  mutate(.estimate = round(.estimate, 3)) %>% 
+  flextable() %>%  width(width = 2.4) %>% 
+  add_header_lines("Logistic regression model (with rose-resampling) - kørt på test-data")
+
+# ROC-curve
+roc_data <- tibble(
+pred  = bike_last_fit$.predictions[[1]] %>% pull(`.pred_Major Injuries`), 
+truth = bike_test$crash_sevr)
+
+roc_curve(roc_data,
+          truth = truth, 
+          estimate = pred) %>% 
+  ggplot(aes(x = 1- specificity, y = sensitivity)) +
+  geom_path() +
+  coord_equal() +
+  geom_abline(lty = 3)
+```
+
+
+
+```{r, fig.width = 5, fig.height = 15}
+
+# Clean up x_variable names
+vars <- bike_last_fit$.workflow[[1]]$fit$fit$preproc$x_var
+
+vars <- 
+str_replace_all(vars, pattern = "X|_|\\.|\\s+", " ") %>% 
+  str_replace_all(pattern = "\\s+", " " ) %>% 
+  str_to_title()
+
+# Visualise variables
+(
+bike_last_fit %>% 
+  pull(.workflow) %>% 
+  pluck(1) %>% 
+  tidy(exponentiate = TRUE) %>% 
+  filter(term != "(Intercept)") %>% 
+    mutate(
+      term = vars) %>% 
+  filter(p.value < 0.05) %>% 
+  ggplot(aes(x = estimate, y = fct_reorder(term, estimate))) + 
+  geom_point(aes(x = estimate)) +
+  geom_errorbar(aes(
+    xmin = estimate - std.error,
+    xmax = estimate  + std.error )) +
+  labs(x = "Odds Ratio + Standard Error", y = "Predictor Variable") 
+) %>% 
+  ggplotly(tooltip = "estimate", autosize = F, width = 666, height = 750) %>% 
+  config(displayModeBar = F)
+
+
+#last_fit_table <- 
+bike_last_fit %>% 
+  pull(.workflow) %>% 
+  pluck(1) %>% 
+  tidy(exponentiate = TRUE) %>% 
+  filter(term != "(Intercept)",
+         p.value < 0.05) %>% 
+  arrange(term) %>% 
+  mutate(p.value = round(p.value, 3),
+         statistic = round(statistic, 3),
+         std.error = round(std.error, 3),
+         estimate = round(estimate, 3)) %>% 
+  print(n = 100) 
+
+```

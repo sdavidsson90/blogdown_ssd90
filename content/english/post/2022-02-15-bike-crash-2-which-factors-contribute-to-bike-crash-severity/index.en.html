@@ -1,0 +1,787 @@
+---
+title: 'Bike Crash 2: Which factors contribute to bike crash severity?'
+author: "Sighvatur Davidsson"
+date: '2022-02-15'
+slug: []
+categories: []
+tags: []
+---
+
+<script src="{{< blogdown/postref >}}index.en_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/htmlwidgets/htmlwidgets.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/plotly-binding/plotly.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/typedarray/typedarray.min.js"></script>
+<script src="{{< blogdown/postref >}}index.en_files/jquery/jquery.min.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/crosstalk/css/crosstalk.min.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.en_files/crosstalk/js/crosstalk.min.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index.en_files/plotly-main/plotly-latest.min.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/tabwid/tabwid.css" rel="stylesheet" />
+
+
+<div id="outline-for-this-post" class="section level3">
+<h3>Outline for this post</h3>
+<p>In this post I will be using machine learning methods to extrude insights that can be gained from the <strong>bike crash</strong>-dataset, that I introduced in my <a href="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/">previous post</a>. In the previous post we looked at the information that has been made available in the dataset, and we concluded that we are working with a dataset that is highly qualitative in nature, hence we must choose appropriate machine learning methods. This is the second part in the series. The other posts are:</p>
+<ol style="list-style-type: decimal">
+<li>Introducing the bike crash-dataset</li>
+<li>Mapping bike crashes with GIS-tools using the command line</li>
+<li>Identifying environmental factors that affect the number of crashes</li>
+<li>How can these insights make an impact?</li>
+</ol>
+</div>
+<div id="the-business-problem" class="section level3">
+<h3>The business problem</h3>
+<p>Data analytics is essentially useless if we don’t pay close attention to the core business problem we are working on. After all the purpose of machine learning is to gain insights that can be presented to decision makers in order for them to base their decisions on actual data - as opposed to guesswork or general assumptions. I will be discussing this topic further in <a href="google.com">Bike Crash 4</a>. Of course this project does not have an actual decision maker on the receiving end, but as this is a critical consideration in data analytics, I don’t want to leave it out.</p>
+<div id="vision-zero" class="section level4">
+<h4>Vision zero</h4>
+<p>In 2015 the North Carolinian transport authorities adopted a new policy for designing the states transportation network. The adoption of this policy legally obliges the authorities to base their traffic improvement measures on the principles of the Vision Zero project. This project strives to reduce the number of traffic related immobilities or deaths to zero.</p>
+<p>The principles are derived from a set of ethical imperatives:
+- Citizens lives or mobility can never be traded for other societal advantages
+- When citizens lives or mobility are affected preventive measures must be taken</p>
+<p>Tingvall &amp; Haworth (1999) describe this as a paradigm shift in traffic planning.</p>
+</div>
+<div id="our-objective" class="section level4">
+<h4>Our objective</h4>
+<p>Thus the question we are trying to answer is:</p>
+</div>
+</div>
+<div id="can-we-identify-risk-factors-that-increase-the-severity-of-accidents" class="section level2">
+<h2><em>Can we identify risk factors that increase the severity of accidents?</em></h2>
+<p>Using this knowledge we would be able to allocate ressources to improving the conditions that have the biggest effect on the seriousness of accidents.</p>
+<pre class="r"><code># Load packages
+pacman::p_load(tidyverse,                      # essentials
+               sf, tmap,                       # mapping tools
+               plotly,                         # interactive plotting
+               hrbrthemes,                     # cool plotting theme
+               tidymodels, baguette, themis    # modeling tools
+)
+               
+# Set standard plotting theme
+theme_set(theme_ipsum_ps())
+
+# Read in datasets
+bike_crash &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/bike_crash.rds&quot;)</code></pre>
+<div id="outcome-variable" class="section level4">
+<h4>Outcome variable</h4>
+<p>We will we using the variable <em>crash_sevr</em> as our outcome variable.</p>
+<pre class="r"><code># Before selecting I like to save the unedited dataset to memory
+bike_crash0 &lt;- bike_crash
+
+# Initial plotting of our outcome variable
+(
+  bike_crash %&gt;%
+  count(crash_sevr) %&gt;% 
+  ggplot(aes(x = crash_sevr, y = n, fill = crash_sevr, text = paste0(crash_sevr,&quot;: &quot;, n))) +
+  geom_col(fill = &quot;grey60&quot;) +
+  ggtitle(&quot;Severity of crashes (2007 - 2019)&quot;) +
+  labs(x = &quot;&quot;, y = &quot;&quot;) +
+  theme(axis.text.x=element_text(angle = 30, hjust = 1))
+ ) %&gt;% 
+  ggplotly(tooltip = c(&quot;text&quot;)) %&gt;% 
+  config(displayModeBar = F)</code></pre>
+<div id="htmlwidget-1" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"data":[{"orientation":"v","width":[0.9,0.9,0.9,0.9,0.9,0.9],"base":[0,0,0,0,0,0],"x":[1,2,3,4,5,6],"y":[1396,4716,5057,650,278,76],"text":["No Injury: 1396","Possible Injury: 4716","Suspected Minor Injury: 5057","Suspected Serious Injury: 650","Killed: 278","NA: 76"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(153,153,153,1)","line":{"width":1.88976377952756,"color":"transparent"}},"showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":95.7011207970112,"r":39.8505603985056,"b":71.5649647156497,"l":67.5799086757991},"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":15.2760481527605},"title":{"text":"Severity of crashes (2007 - 2019)","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans-Bold","size":23.9103362391034},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.4,6.6],"tickmode":"array","ticktext":["No Injury","Possible Injury","Suspected Minor Injury","Suspected Serious Injury","Killed"],"tickvals":[1,2,3,4,5],"categoryorder":"array","categoryarray":["No Injury","Possible Injury","Suspected Minor Injury","Suspected Serious Injury","Killed"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-30,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(204,204,204,1)","gridwidth":0.265670402656704,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-252.85,5309.85],"tickmode":"array","ticktext":["0","1000","2000","3000","4000","5000"],"tickvals":[2.8421709430404e-14,1000,2000,3000,4000,5000],"categoryorder":"array","categoryarray":["0","1000","2000","3000","4000","5000"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(204,204,204,1)","gridwidth":0.265670402656704,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":12.2208385222084}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false,"displayModeBar":false},"source":"A","attrs":{"1770c544d6bc6":{"x":{},"y":{},"fill":{},"text":{},"type":"bar"}},"cur_data":"1770c544d6bc6","visdat":{"1770c544d6bc6":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<p>Here we see the frequency distribution of the variable categories.</p>
+<p>As we saw in part 1: this is very much a qualitative dataset. An obvious choice of machine learning methods is therefore to go with the classification type models. This calls for a recoding of our variable to a dichotomous outcome.</p>
+<pre class="r"><code># Outcome variable should be binary with &quot;positive&quot; outcome marked as 1.
+
+# # # # RECODING # # # # # 
+# 
+#   We&#39;re predicting crash severeness, so the encoding will be:
+#     1: Serious injury or killed
+#     0: Minor injuries
+bike_crash &lt;- bike_crash %&gt;% 
+
+  # First we filter out NA&#39;s
+  filter(!is.na(crash_sevr)) %&gt;% 
+  mutate( 
+    # Then we use an if_else statement to gather the two most serious categories into &#39;Major Injuries&#39; and the rest to &#39;Minor Injuries&#39;
+    crash_sevr = if_else(crash_sevr %in% c(&quot;Killed&quot;, &quot;Suspected Serious Injury&quot;), &quot;Major Injuries&quot;, &quot;Minor Injuries&quot;),
+   
+    # Finally; most classification models require outcome variable to be coded as factor
+    crash_sevr = factor(crash_sevr, levels = c(&quot;Major Injuries&quot;, &quot;Minor Injuries&quot;)))
+
+#  Double check recoded variable
+contrasts(bike_crash$crash_sevr)</code></pre>
+<pre><code>##                Minor Injuries
+## Major Injuries              0
+## Minor Injuries              1</code></pre>
+<pre class="r"><code># Plotting of outcome variable after recoding
+(
+  bike_crash %&gt;%
+  count(crash_sevr) %&gt;%
+  mutate(crash_sevr = fct_rev(crash_sevr)) %&gt;% 
+  ggplot(aes(x = crash_sevr, y = n, fill = crash_sevr, text = paste0(crash_sevr,&quot;: &quot;, n))) +
+  geom_col(fill = &quot;grey60&quot;) +
+  labs(x = &quot;&quot;, y = &quot;&quot;) +
+  theme(axis.text.x=element_text(angle = 30, hjust = 1)) 
+ ) %&gt;% 
+  ggplotly(tooltip = c(&quot;text&quot;)) %&gt;% 
+  config(displayModeBar = F)</code></pre>
+<div id="htmlwidget-2" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-2">{"x":{"data":[{"orientation":"v","width":[0.9,0.9],"base":[0,0],"x":[2,1],"y":[928,11169],"text":["Major Injuries: 928","Minor Injuries: 11169"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(153,153,153,1)","line":{"width":1.88976377952756,"color":"transparent"}},"showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":71.7907845579079,"r":39.8505603985056,"b":71.5649647156497,"l":67.5799086757991},"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":15.2760481527605},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.4,2.6],"tickmode":"array","ticktext":["Minor Injuries","Major Injuries"],"tickvals":[1,2],"categoryorder":"array","categoryarray":["Minor Injuries","Major Injuries"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-30,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(204,204,204,1)","gridwidth":0.265670402656704,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-558.45,11727.45],"tickmode":"array","ticktext":["0","3000","6000","9000"],"tickvals":[0,3000,6000,9000],"categoryorder":"array","categoryarray":["0","3000","6000","9000"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(204,204,204,1)","gridwidth":0.265670402656704,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":12.2208385222084}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false,"displayModeBar":false},"source":"A","attrs":{"1770c2b6948cf":{"x":{},"y":{},"fill":{},"text":{},"type":"bar"}},"cur_data":"1770c2b6948cf","visdat":{"1770c2b6948cf":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<p>Here’s an updated frequency distribution of our recoded outcome variable. It is very important to notice that we have class imbalance - ie. more than 90 % of the observations are minor injuries. Remember; our objective is to prevent the major injuries by identifying their contributing causes. Left untouched this distribution will almost certainly harm our ability to create a model that can correctly predict the most severe cases. This will be dealt with in the modelling section.</p>
+</div>
+<div id="predictor-variables" class="section level4">
+<h4>Predictor variables</h4>
+<p>In my modeling for this post I will be focusing on environmental variables - ie. factors in the physical environment that can be improved.</p>
+<pre class="r"><code># Predictor variables
+bike_crash &lt;- bike_crash %&gt;% 
+    select(
+      # Outcome variable
+      crash_sevr, 
+      # Environmental variables
+      starts_with(&quot;rd_&quot;), light_cond, locality, num_lanes, 
+      rural_urban, traff_cntrl, speed_limit, workzone, crash_loc, developmen
+      ) 
+
+# Option: Omit all NA
+# bike_crash &lt;- na.omit(bike_crash)
+# Det gør vi ikke, da vi får en bedre model (på alle parametre), hvis vi lader være
+
+colnames(bike_crash)</code></pre>
+<pre><code>##  [1] &quot;crash_sevr&quot;  &quot;rd_bent&quot;     &quot;rd_hill&quot;     &quot;rd_class&quot;    &quot;rd_conditio&quot;
+##  [6] &quot;rd_config&quot;   &quot;rd_defects&quot;  &quot;rd_feature&quot;  &quot;rd_surface&quot;  &quot;light_cond&quot; 
+## [11] &quot;locality&quot;    &quot;num_lanes&quot;   &quot;rural_urban&quot; &quot;traff_cntrl&quot; &quot;speed_limit&quot;
+## [16] &quot;workzone&quot;    &quot;crash_loc&quot;   &quot;developmen&quot;</code></pre>
+</div>
+<div id="modelling" class="section level4">
+<h4>Modelling</h4>
+<p>I will be using testing two different methods against each other; logistic regression and a random forrest with bagging.</p>
+<pre class="r"><code># I will be modelling using the tidymodels package
+# This package was loaded in a previous chunk
+
+# Tidymodels offer control over which model engine to select. 
+
+# Logistic regression
+logreg &lt;- logistic_reg() %&gt;% 
+  set_engine(engine = &quot;glm&quot;) %&gt;%  
+  set_mode(&quot;classification&quot;)
+
+# Bagged random forest (reqires baguette package)
+bagged &lt;- bag_tree(min_n = 10) %&gt;%
+  set_engine(&quot;rpart&quot;, times = 25) %&gt;%
+  set_mode(&quot;classification&quot;)
+
+# Define model rest metrics
+custom_metrics &lt;- metric_set(accuracy, roc_auc, sensitivity, specificity)</code></pre>
+<p>We of course have to split the dataset into a train and test set.</p>
+<pre class="r"><code># Data split for training model
+set.seed(512)
+bike_split &lt;- initial_split(bike_crash, prop = 0.75, strata = crash_sevr) 
+bike_train &lt;- bike_split %&gt;% training()
+bike_test &lt;- bike_split %&gt;% testing()
+
+# Cross validation for folds for higher prediction accuracy
+set.seed(666)
+bike_folds &lt;- vfold_cv(bike_train, v = 2, prop = 0.75,  strata = crash_sevr)
+
+# Define model test metrics
+bike_metrics &lt;- metric_set(accuracy, roc_auc, sensitivity, specificity)</code></pre>
+<pre class="r"><code># Formula
+formula &lt;- formula(crash_sevr ~ .)
+
+# Define recipe
+bike_recipe &lt;- 
+  recipe(formula, data = bike_train) %&gt;% 
+  step_dummy(all_nominal(), -all_outcomes()) 
+
+# Logistic regression workflow
+bc_logreg_wf &lt;- workflow() %&gt;% 
+  add_recipe(bike_recipe)  %&gt;% 
+  add_model(logreg)
+
+# Random forest workflow
+bc_bagged_wf &lt;- workflow() %&gt;% 
+  add_recipe(bike_recipe)  %&gt;% 
+  add_model(bagged)
+
+# We wan&#39;t to collect predictions
+ctrl_preds &lt;- control_resamples(save_pred = TRUE)
+
+# Let&#39;s fit!
+bc_logreg_fit &lt;- fit_resamples(bc_logreg_wf, bike_folds, metrics = custom_metrics,  control = ctrl_preds) 
+bc_bagged_fit &lt;- fit_resamples(bc_bagged_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+
+
+library(flextable)
+
+# And evaluate
+collect_metrics(bc_logreg_fit) %&gt;% 
+  select(-.config, -n) %&gt;% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %&gt;% 
+  flextable() %&gt;% add_header_lines(&quot;Logistic regression model&quot;)</code></pre>
+<template id="261185de-3c7e-47fa-b8c4-6aa6aefa43f1"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-222923c8{}.cl-222088bc{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-2220c80e{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-2220c818{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-22210d32{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-22210d3c{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-22210d3d{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-22210d46{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-22210d47{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-22210d50{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-222923c8'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="4"class="cl-22210d47"><p class="cl-2220c80e"><span class="cl-222088bc">Logistic regression model</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-22210d47"><p class="cl-2220c80e"><span class="cl-222088bc">.metric</span></p></td><td class="cl-22210d47"><p class="cl-2220c80e"><span class="cl-222088bc">.estimator</span></p></td><td class="cl-22210d50"><p class="cl-2220c818"><span class="cl-222088bc">mean</span></p></td><td class="cl-22210d50"><p class="cl-2220c818"><span class="cl-222088bc">std_err</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-22210d32"><p class="cl-2220c80e"><span class="cl-222088bc">accuracy</span></p></td><td class="cl-22210d32"><p class="cl-2220c80e"><span class="cl-222088bc">binary</span></p></td><td class="cl-22210d3c"><p class="cl-2220c818"><span class="cl-222088bc">0.916</span></p></td><td class="cl-22210d3c"><p class="cl-2220c818"><span class="cl-222088bc">0.002</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-22210d32"><p class="cl-2220c80e"><span class="cl-222088bc">roc_auc</span></p></td><td class="cl-22210d32"><p class="cl-2220c80e"><span class="cl-222088bc">binary</span></p></td><td class="cl-22210d3c"><p class="cl-2220c818"><span class="cl-222088bc">0.699</span></p></td><td class="cl-22210d3c"><p class="cl-2220c818"><span class="cl-222088bc">0.002</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-22210d32"><p class="cl-2220c80e"><span class="cl-222088bc">sensitivity</span></p></td><td class="cl-22210d32"><p class="cl-2220c80e"><span class="cl-222088bc">binary</span></p></td><td class="cl-22210d3c"><p class="cl-2220c818"><span class="cl-222088bc">0.008</span></p></td><td class="cl-22210d3c"><p class="cl-2220c818"><span class="cl-222088bc">0.002</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-22210d3d"><p class="cl-2220c80e"><span class="cl-222088bc">specificity</span></p></td><td class="cl-22210d3d"><p class="cl-2220c80e"><span class="cl-222088bc">binary</span></p></td><td class="cl-22210d46"><p class="cl-2220c818"><span class="cl-222088bc">0.998</span></p></td><td class="cl-22210d46"><p class="cl-2220c818"><span class="cl-222088bc">0.001</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="3fb78387-238b-4a76-ac25-99f4ece5e2b4"></div>
+<script>
+var dest = document.getElementById("3fb78387-238b-4a76-ac25-99f4ece5e2b4");
+var template = document.getElementById("261185de-3c7e-47fa-b8c4-6aa6aefa43f1");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code>collect_metrics(bc_bagged_fit) %&gt;% 
+  select(-.config, -n) %&gt;% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %&gt;% 
+  flextable() %&gt;% add_header_lines(&quot;Bagged random forest model&quot;)</code></pre>
+<template id="4018c474-cc1a-4ffa-bfae-6a72d6fdeeaa"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-2246ade4{}.cl-223cdee0{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-223f724a{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-223f725e{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-223fadc8{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-223fadd2{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-223faddc{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-223fade6{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-223fade7{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-223fadf0{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-2246ade4'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="4"class="cl-223fade7"><p class="cl-223f724a"><span class="cl-223cdee0">Bagged random forest model</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-223fade7"><p class="cl-223f724a"><span class="cl-223cdee0">.metric</span></p></td><td class="cl-223fade7"><p class="cl-223f724a"><span class="cl-223cdee0">.estimator</span></p></td><td class="cl-223fadf0"><p class="cl-223f725e"><span class="cl-223cdee0">mean</span></p></td><td class="cl-223fadf0"><p class="cl-223f725e"><span class="cl-223cdee0">std_err</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-223fadc8"><p class="cl-223f724a"><span class="cl-223cdee0">accuracy</span></p></td><td class="cl-223fadc8"><p class="cl-223f724a"><span class="cl-223cdee0">binary</span></p></td><td class="cl-223fadd2"><p class="cl-223f725e"><span class="cl-223cdee0">0.922</span></p></td><td class="cl-223fadd2"><p class="cl-223f725e"><span class="cl-223cdee0">0.003</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-223fadc8"><p class="cl-223f724a"><span class="cl-223cdee0">roc_auc</span></p></td><td class="cl-223fadc8"><p class="cl-223f724a"><span class="cl-223cdee0">binary</span></p></td><td class="cl-223fadd2"><p class="cl-223f725e"><span class="cl-223cdee0">0.700</span></p></td><td class="cl-223fadd2"><p class="cl-223f725e"><span class="cl-223cdee0">0.009</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-223fadc8"><p class="cl-223f724a"><span class="cl-223cdee0">sensitivity</span></p></td><td class="cl-223fadc8"><p class="cl-223f724a"><span class="cl-223cdee0">binary</span></p></td><td class="cl-223fadd2"><p class="cl-223f725e"><span class="cl-223cdee0">0.014</span></p></td><td class="cl-223fadd2"><p class="cl-223f725e"><span class="cl-223cdee0">0.005</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-223faddc"><p class="cl-223f724a"><span class="cl-223cdee0">specificity</span></p></td><td class="cl-223faddc"><p class="cl-223f724a"><span class="cl-223cdee0">binary</span></p></td><td class="cl-223fade6"><p class="cl-223f725e"><span class="cl-223cdee0">0.998</span></p></td><td class="cl-223fade6"><p class="cl-223f725e"><span class="cl-223cdee0">0.000</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="997fe41c-6ae1-4508-8581-28fbea35dbb0"></div>
+<script>
+var dest = document.getElementById("997fe41c-6ae1-4508-8581-28fbea35dbb0");
+var template = document.getElementById("4018c474-cc1a-4ffa-bfae-6a72d6fdeeaa");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code># We could adjust threshold and get higher sensitivty, but we would be less accurate
+
+# Because of class imbalance we need to try resampling methods
+set.seed(444)
+bike_recipe_rose &lt;- 
+bike_recipe %&gt;% 
+  step_rose(crash_sevr) 
+
+set.seed(555)
+bike_recipe_down &lt;- 
+bike_recipe %&gt;% 
+  step_downsample(crash_sevr) 
+
+# ROSE
+bc_logreg_rose_wf &lt;- workflow() %&gt;% 
+  add_recipe(bike_recipe_rose)  %&gt;% 
+  add_model(logreg)
+
+bc_bagged_rose_wf &lt;- workflow() %&gt;% 
+  add_recipe(bike_recipe_rose)  %&gt;% 
+  add_model(bagged)
+
+# DOWN
+bc_logreg_down_wf &lt;- workflow() %&gt;% 
+  add_recipe(bike_recipe_down)  %&gt;% 
+  add_model(logreg)
+
+bc_bagged_down_wf &lt;- workflow() %&gt;% 
+  add_recipe(bike_recipe_down)  %&gt;% 
+  add_model(bagged)
+
+# Let&#39;s fit!
+bc_logreg_rose_fit &lt;- fit_resamples(bc_logreg_rose_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+bc_bagged_rose_fit &lt;- fit_resamples(bc_bagged_rose_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+
+bc_logreg_down_fit &lt;- fit_resamples(bc_logreg_down_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+bc_bagged_down_fit &lt;- fit_resamples(bc_bagged_down_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
+
+
+# And evaluate
+collect_metrics(bc_logreg_rose_fit) %&gt;%
+  select(-.config, -n) %&gt;% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %&gt;% 
+  flextable() %&gt;% 
+  add_header_lines(&quot;Logistic regression model (with rose-resampling)&quot;)</code></pre>
+<template id="0aee9b30-d240-4a19-a80b-dd8bc15c150a"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-465c9036{}.cl-4655285a{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-465538e0{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-465538ea{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-46556ff4{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46557008{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46557012{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46557013{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4655701c{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4655701d{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-465c9036'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="4"class="cl-4655701c"><p class="cl-465538e0"><span class="cl-4655285a">Logistic regression model (with rose-resampling)</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4655701c"><p class="cl-465538e0"><span class="cl-4655285a">.metric</span></p></td><td class="cl-4655701c"><p class="cl-465538e0"><span class="cl-4655285a">.estimator</span></p></td><td class="cl-4655701d"><p class="cl-465538ea"><span class="cl-4655285a">mean</span></p></td><td class="cl-4655701d"><p class="cl-465538ea"><span class="cl-4655285a">std_err</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-46556ff4"><p class="cl-465538e0"><span class="cl-4655285a">accuracy</span></p></td><td class="cl-46556ff4"><p class="cl-465538e0"><span class="cl-4655285a">binary</span></p></td><td class="cl-46557008"><p class="cl-465538ea"><span class="cl-4655285a">0.718</span></p></td><td class="cl-46557008"><p class="cl-465538ea"><span class="cl-4655285a">0.003</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46556ff4"><p class="cl-465538e0"><span class="cl-4655285a">roc_auc</span></p></td><td class="cl-46556ff4"><p class="cl-465538e0"><span class="cl-4655285a">binary</span></p></td><td class="cl-46557008"><p class="cl-465538ea"><span class="cl-4655285a">0.695</span></p></td><td class="cl-46557008"><p class="cl-465538ea"><span class="cl-4655285a">0.001</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46556ff4"><p class="cl-465538e0"><span class="cl-4655285a">sensitivity</span></p></td><td class="cl-46556ff4"><p class="cl-465538e0"><span class="cl-4655285a">binary</span></p></td><td class="cl-46557008"><p class="cl-465538ea"><span class="cl-4655285a">0.592</span></p></td><td class="cl-46557008"><p class="cl-465538ea"><span class="cl-4655285a">0.001</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46557012"><p class="cl-465538e0"><span class="cl-4655285a">specificity</span></p></td><td class="cl-46557012"><p class="cl-465538e0"><span class="cl-4655285a">binary</span></p></td><td class="cl-46557013"><p class="cl-465538ea"><span class="cl-4655285a">0.729</span></p></td><td class="cl-46557013"><p class="cl-465538ea"><span class="cl-4655285a">0.003</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="32c588d9-2ab3-4109-ae5a-74e9caf01aa6"></div>
+<script>
+var dest = document.getElementById("32c588d9-2ab3-4109-ae5a-74e9caf01aa6");
+var template = document.getElementById("0aee9b30-d240-4a19-a80b-dd8bc15c150a");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code>collect_metrics(bc_bagged_rose_fit) %&gt;% 
+  select(-.config, -n) %&gt;% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %&gt;% 
+  flextable() %&gt;% 
+  add_header_lines(&quot;Bagged random forest model (with rose-resampling)&quot;)</code></pre>
+<template id="435e42a1-3dd0-4223-9da3-7bf9868f3c05"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-4675f0d0{}.cl-466f9320{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-466fa3ba{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-466fa3c4{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-466fdb14{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-466fdb1e{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-466fdb28{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-466fdb29{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-466fdb32{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-466fdb3c{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-4675f0d0'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="4"class="cl-466fdb32"><p class="cl-466fa3ba"><span class="cl-466f9320">Bagged random forest model (with rose-resampling)</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-466fdb32"><p class="cl-466fa3ba"><span class="cl-466f9320">.metric</span></p></td><td class="cl-466fdb32"><p class="cl-466fa3ba"><span class="cl-466f9320">.estimator</span></p></td><td class="cl-466fdb3c"><p class="cl-466fa3c4"><span class="cl-466f9320">mean</span></p></td><td class="cl-466fdb3c"><p class="cl-466fa3c4"><span class="cl-466f9320">std_err</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-466fdb14"><p class="cl-466fa3ba"><span class="cl-466f9320">accuracy</span></p></td><td class="cl-466fdb14"><p class="cl-466fa3ba"><span class="cl-466f9320">binary</span></p></td><td class="cl-466fdb1e"><p class="cl-466fa3c4"><span class="cl-466f9320">0.077</span></p></td><td class="cl-466fdb1e"><p class="cl-466fa3c4"><span class="cl-466f9320">0.003</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-466fdb14"><p class="cl-466fa3ba"><span class="cl-466f9320">roc_auc</span></p></td><td class="cl-466fdb14"><p class="cl-466fa3ba"><span class="cl-466f9320">binary</span></p></td><td class="cl-466fdb1e"><p class="cl-466fa3c4"><span class="cl-466f9320">0.502</span></p></td><td class="cl-466fdb1e"><p class="cl-466fa3c4"><span class="cl-466f9320">0.003</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-466fdb14"><p class="cl-466fa3ba"><span class="cl-466f9320">sensitivity</span></p></td><td class="cl-466fdb14"><p class="cl-466fa3ba"><span class="cl-466f9320">binary</span></p></td><td class="cl-466fdb1e"><p class="cl-466fa3c4"><span class="cl-466f9320">1.000</span></p></td><td class="cl-466fdb1e"><p class="cl-466fa3c4"><span class="cl-466f9320">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-466fdb28"><p class="cl-466fa3ba"><span class="cl-466f9320">specificity</span></p></td><td class="cl-466fdb28"><p class="cl-466fa3ba"><span class="cl-466f9320">binary</span></p></td><td class="cl-466fdb29"><p class="cl-466fa3c4"><span class="cl-466f9320">0.000</span></p></td><td class="cl-466fdb29"><p class="cl-466fa3c4"><span class="cl-466f9320">0.000</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="9d943929-772e-4bf8-b196-1901ec60d8e6"></div>
+<script>
+var dest = document.getElementById("9d943929-772e-4bf8-b196-1901ec60d8e6");
+var template = document.getElementById("435e42a1-3dd0-4223-9da3-7bf9868f3c05");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code>collect_metrics(bc_logreg_down_fit) %&gt;% 
+  select(-.config, -n) %&gt;% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %&gt;% 
+  flextable() %&gt;% 
+add_header_lines(&quot;Logistic regression model (with downsampling)&quot;)</code></pre>
+<template id="2db1b703-c53f-4e17-be3d-4e0c911124ee"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-469235c4{}.cl-468b222a{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-468b3292{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-468b329c{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-468b6aaa{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-468b6ab4{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-468b6abe{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-468b6abf{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-468b6ac8{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-468b6ac9{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-469235c4'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="4"class="cl-468b6ac8"><p class="cl-468b3292"><span class="cl-468b222a">Logistic regression model (with downsampling)</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-468b6ac8"><p class="cl-468b3292"><span class="cl-468b222a">.metric</span></p></td><td class="cl-468b6ac8"><p class="cl-468b3292"><span class="cl-468b222a">.estimator</span></p></td><td class="cl-468b6ac9"><p class="cl-468b329c"><span class="cl-468b222a">mean</span></p></td><td class="cl-468b6ac9"><p class="cl-468b329c"><span class="cl-468b222a">std_err</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-468b6aaa"><p class="cl-468b3292"><span class="cl-468b222a">accuracy</span></p></td><td class="cl-468b6aaa"><p class="cl-468b3292"><span class="cl-468b222a">binary</span></p></td><td class="cl-468b6ab4"><p class="cl-468b329c"><span class="cl-468b222a">0.621</span></p></td><td class="cl-468b6ab4"><p class="cl-468b329c"><span class="cl-468b222a">0.022</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-468b6aaa"><p class="cl-468b3292"><span class="cl-468b222a">roc_auc</span></p></td><td class="cl-468b6aaa"><p class="cl-468b3292"><span class="cl-468b222a">binary</span></p></td><td class="cl-468b6ab4"><p class="cl-468b329c"><span class="cl-468b222a">0.648</span></p></td><td class="cl-468b6ab4"><p class="cl-468b329c"><span class="cl-468b222a">0.024</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-468b6aaa"><p class="cl-468b3292"><span class="cl-468b222a">sensitivity</span></p></td><td class="cl-468b6aaa"><p class="cl-468b3292"><span class="cl-468b222a">binary</span></p></td><td class="cl-468b6ab4"><p class="cl-468b329c"><span class="cl-468b222a">0.648</span></p></td><td class="cl-468b6ab4"><p class="cl-468b329c"><span class="cl-468b222a">0.005</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-468b6abe"><p class="cl-468b3292"><span class="cl-468b222a">specificity</span></p></td><td class="cl-468b6abe"><p class="cl-468b3292"><span class="cl-468b222a">binary</span></p></td><td class="cl-468b6abf"><p class="cl-468b329c"><span class="cl-468b222a">0.618</span></p></td><td class="cl-468b6abf"><p class="cl-468b329c"><span class="cl-468b222a">0.025</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="ca3b8250-82f2-4026-b53f-37838eb47166"></div>
+<script>
+var dest = document.getElementById("ca3b8250-82f2-4026-b53f-37838eb47166");
+var template = document.getElementById("2db1b703-c53f-4e17-be3d-4e0c911124ee");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code>collect_metrics(bc_bagged_down_fit) %&gt;% 
+  select(-.config, -n) %&gt;% 
+  mutate(mean = round(mean, 3),
+         std_err = round(std_err, 3)) %&gt;% 
+  flextable() %&gt;% 
+  add_header_lines(&quot;Bagged random forest model (with downsampling)&quot;)</code></pre>
+<template id="434b57b3-0e44-4e57-9358-8158e752dde6"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-46ab0590{}.cl-46a3c4ec{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-46a3d568{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-46a3d572{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-46a40bc8{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46a40bd2{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46a40bdc{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46a40bdd{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46a40be6{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-46a40be7{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-46ab0590'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="4"class="cl-46a40be6"><p class="cl-46a3d568"><span class="cl-46a3c4ec">Bagged random forest model (with downsampling)</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46a40be6"><p class="cl-46a3d568"><span class="cl-46a3c4ec">.metric</span></p></td><td class="cl-46a40be6"><p class="cl-46a3d568"><span class="cl-46a3c4ec">.estimator</span></p></td><td class="cl-46a40be7"><p class="cl-46a3d572"><span class="cl-46a3c4ec">mean</span></p></td><td class="cl-46a40be7"><p class="cl-46a3d572"><span class="cl-46a3c4ec">std_err</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-46a40bc8"><p class="cl-46a3d568"><span class="cl-46a3c4ec">accuracy</span></p></td><td class="cl-46a40bc8"><p class="cl-46a3d568"><span class="cl-46a3c4ec">binary</span></p></td><td class="cl-46a40bd2"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.641</span></p></td><td class="cl-46a40bd2"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.000</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46a40bc8"><p class="cl-46a3d568"><span class="cl-46a3c4ec">roc_auc</span></p></td><td class="cl-46a40bc8"><p class="cl-46a3d568"><span class="cl-46a3c4ec">binary</span></p></td><td class="cl-46a40bd2"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.697</span></p></td><td class="cl-46a40bd2"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.009</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46a40bc8"><p class="cl-46a3d568"><span class="cl-46a3c4ec">sensitivity</span></p></td><td class="cl-46a40bc8"><p class="cl-46a3d568"><span class="cl-46a3c4ec">binary</span></p></td><td class="cl-46a40bd2"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.648</span></p></td><td class="cl-46a40bd2"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.016</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-46a40bdc"><p class="cl-46a3d568"><span class="cl-46a3c4ec">specificity</span></p></td><td class="cl-46a40bdc"><p class="cl-46a3d568"><span class="cl-46a3c4ec">binary</span></p></td><td class="cl-46a40bdd"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.641</span></p></td><td class="cl-46a40bdd"><p class="cl-46a3d572"><span class="cl-46a3c4ec">0.001</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="59f0354e-ccca-4244-925f-ac4db4edcdab"></div>
+<script>
+var dest = document.getElementById("59f0354e-ccca-4244-925f-ac4db4edcdab");
+var template = document.getElementById("434b57b3-0e44-4e57-9358-8158e752dde6");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code># This one is the winner
+collect_metrics(bc_logreg_rose_fit)</code></pre>
+<pre><code>## # A tibble: 4 × 6
+##   .metric     .estimator  mean     n  std_err .config             
+##   &lt;chr&gt;       &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;    &lt;dbl&gt; &lt;chr&gt;               
+## 1 accuracy    binary     0.718     2 0.00269  Preprocessor1_Model1
+## 2 roc_auc     binary     0.695     2 0.000864 Preprocessor1_Model1
+## 3 sensitivity binary     0.592     2 0.000732 Preprocessor1_Model1
+## 4 specificity binary     0.729     2 0.00257  Preprocessor1_Model1</code></pre>
+<pre class="r"><code># Conf_mat
+(tibble(
+  pred = collect_predictions(bc_logreg_rose_fit)$.pred_class,
+  truth = bike_train$crash_sevr) %&gt;% 
+  conf_mat(truth = truth, estimate = pred) %&gt;% autoplot(type = &quot;heatmap&quot;) + 
+    ggtitle(&quot;Confusion matrix for logistic  \n regression model with rose-resampling&quot;) +
+    theme(panel.grid.major = element_blank() )) %&gt;% 
+  ggplotly() %&gt;% 
+  config(displayModeBar = F)</code></pre>
+<div id="htmlwidget-3" style="width:672px;height:480px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-3">{"x":{"data":[{"x":[1,2],"y":[1,2],"z":[[0.0514797832430179,1],[0,0.401208837015423]],"text":[["Truth: Major Injuries<br />Prediction: Minor Injuries<br />Freq:  429","Truth: Minor Injuries<br />Prediction: Minor Injuries<br />Freq: 4980"],["Truth: Major Injuries<br />Prediction: Major Injuries<br />Freq:  182","Truth: Minor Injuries<br />Prediction: Major Injuries<br />Freq: 2107"]],"colorscale":[[0,"#E5E5E5"],[0.0514797832430179,"#DEDEDE"],[0.401208837015423,"#B0B0B0"],[1,"#666666"]],"type":"heatmap","showscale":false,"autocolorscale":false,"showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[1,1,2,2],"y":[2,1,2,1],"text":[182,429,2107,4980],"hovertext":["Truth: Major Injuries<br />Prediction: Major Injuries<br />Freq:  182<br />Freq:  182","Truth: Major Injuries<br />Prediction: Minor Injuries<br />Freq:  429<br />Freq:  429","Truth: Minor Injuries<br />Prediction: Major Injuries<br />Freq: 2107<br />Freq: 2107","Truth: Minor Injuries<br />Prediction: Minor Injuries<br />Freq: 4980<br />Freq: 4980"],"textfont":{"size":14.6645669291339,"color":"rgba(0,0,0,1)"},"type":"scatter","mode":"text","hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":95.7011207970112,"r":39.8505603985056,"b":83.5201328352014,"l":139.310917393109},"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":15.2760481527605},"title":{"text":"Confusion matrix for logistic  <br /> regression model with rose-resampling","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans-Bold","size":23.9103362391034},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.4,2.6],"tickmode":"array","ticktext":["Major Injuries","Minor Injuries"],"tickvals":[1,2],"categoryorder":"array","categoryarray":["Major Injuries","Minor Injuries"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":false,"gridcolor":null,"gridwidth":0,"zeroline":false,"anchor":"y","title":{"text":"Truth","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.4,2.6],"tickmode":"array","ticktext":["Minor Injuries","Major Injuries"],"tickvals":[1,2],"categoryorder":"array","categoryarray":["Minor Injuries","Major Injuries"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":false,"gridcolor":null,"gridwidth":0,"zeroline":false,"anchor":"x","title":{"text":"Prediction","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":12.2208385222084}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false,"displayModeBar":false},"source":"A","attrs":{"1770c74e645ff":{"x":{},"y":{},"fill":{},"type":"heatmap"},"1770c39fda44e":{"x":{},"y":{},"fill":{},"label":{}}},"cur_data":"1770c74e645ff","visdat":{"1770c74e645ff":["function (y) ","x"],"1770c39fda44e":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<pre class="r"><code># EVALUATE MODEL ON TEST DATA
+bike_last_fit &lt;- last_fit(bc_logreg_rose_wf, bike_split)
+
+# Test_metrics
+results &lt;- tibble(
+  estimate = bike_last_fit$.predictions[[1]]$.pred_class,
+  truth = bike_test$crash_sevr)
+
+accuracy(results, truth, estimate)</code></pre>
+<pre><code>## # A tibble: 1 × 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy binary         0.718</code></pre>
+<pre class="r"><code>bind_rows(
+collect_metrics(bike_last_fit),
+sensitivity(results, truth, estimate),
+specificity(results, truth, estimate))%&gt;%
+  select(-.config, -.estimator) %&gt;% 
+  mutate(.estimate = round(.estimate, 3)) %&gt;% 
+  flextable() %&gt;%  width(width = 2.4) %&gt;% 
+  add_header_lines(&quot;Logistic regression model (with rose-resampling) - kørt på test-data&quot;)</code></pre>
+<template id="8a0997b3-9bc4-4ccf-894b-6d3f7897f6cc"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-4818c610{}.cl-4811ae48{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-4811beb0{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-4811beba{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-4811f36c{width:172.8pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4811f376{width:172.8pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4811f377{width:172.8pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4811f380{width:172.8pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4811f381{width:172.8pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-4811f38a{width:172.8pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-4818c610'>
+<thead><tr style="overflow-wrap:break-word;"><td  colspan="2"class="cl-4811f38a"><p class="cl-4811beb0"><span class="cl-4811ae48">Logistic regression model (with rose-resampling) - kørt på test-data</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4811f38a"><p class="cl-4811beb0"><span class="cl-4811ae48">.metric</span></p></td><td class="cl-4811f381"><p class="cl-4811beba"><span class="cl-4811ae48">.estimate</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-4811f36c"><p class="cl-4811beb0"><span class="cl-4811ae48">accuracy</span></p></td><td class="cl-4811f376"><p class="cl-4811beba"><span class="cl-4811ae48">0.718</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4811f36c"><p class="cl-4811beb0"><span class="cl-4811ae48">roc_auc</span></p></td><td class="cl-4811f376"><p class="cl-4811beba"><span class="cl-4811ae48">0.752</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4811f36c"><p class="cl-4811beb0"><span class="cl-4811ae48">sensitivity</span></p></td><td class="cl-4811f376"><p class="cl-4811beba"><span class="cl-4811ae48">0.691</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-4811f380"><p class="cl-4811beb0"><span class="cl-4811ae48">specificity</span></p></td><td class="cl-4811f377"><p class="cl-4811beba"><span class="cl-4811ae48">0.720</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="0d02b65a-62a0-4541-9cde-25411cc6a369"></div>
+<script>
+var dest = document.getElementById("0d02b65a-62a0-4541-9cde-25411cc6a369");
+var template = document.getElementById("8a0997b3-9bc4-4ccf-894b-6d3f7897f6cc");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code># ROC-curve
+roc_data &lt;- tibble(
+pred  = bike_last_fit$.predictions[[1]] %&gt;% pull(`.pred_Major Injuries`), 
+truth = bike_test$crash_sevr)
+
+roc_curve(roc_data,
+          truth = truth, 
+          estimate = pred) %&gt;% 
+  ggplot(aes(x = 1- specificity, y = sensitivity)) +
+  geom_path() +
+  coord_equal() +
+  geom_abline(lty = 3)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code># Clean up x_variable names
+vars &lt;- bike_last_fit$.workflow[[1]]$fit$fit$preproc$x_var
+
+vars &lt;- 
+str_replace_all(vars, pattern = &quot;X|_|\\.|\\s+&quot;, &quot; &quot;) %&gt;% 
+  str_replace_all(pattern = &quot;\\s+&quot;, &quot; &quot; ) %&gt;% 
+  str_to_title()
+
+# Visualise variables
+(
+bike_last_fit %&gt;% 
+  pull(.workflow) %&gt;% 
+  pluck(1) %&gt;% 
+  tidy(exponentiate = TRUE) %&gt;% 
+  filter(term != &quot;(Intercept)&quot;) %&gt;% 
+    mutate(
+      term = vars) %&gt;% 
+  filter(p.value &lt; 0.05) %&gt;% 
+  ggplot(aes(x = estimate, y = fct_reorder(term, estimate))) + 
+  geom_point(aes(x = estimate)) +
+  geom_errorbar(aes(
+    xmin = estimate - std.error,
+    xmax = estimate  + std.error )) +
+  labs(x = &quot;Odds Ratio + Standard Error&quot;, y = &quot;Predictor Variable&quot;) 
+) %&gt;% 
+  ggplotly(tooltip = &quot;estimate&quot;, autosize = F, width = 666, height = 750) %&gt;% 
+  config(displayModeBar = F)</code></pre>
+<div id="htmlwidget-4" style="width:666px;height:750px;" class="plotly html-widget"></div>
+<script type="application/json" data-for="htmlwidget-4">{"x":{"data":[{"x":[1.20138300527877,0.829565082166465,1.20477005736006,0.83832115580042,1.91411391374165,0.874529669445437,0.731882499392058,0.905859795463445,0.575335919168738,1.19162716313017,1.20544718337448,0.186584070338081,3.74814892655978,0.669539199530742,2.41894775621083,0.305195596498228,0.668118704482198,4.57726000064948,0.397821577624412,1.33330027964144,0.804458120939587,0.846730999200689,0.332612823212714,1.18358667932511,1.16655807670907,3.99210987579517,0.911893783530516,0.604973487288608,1.3279551346603,1.35806788096178,1.19566290884514,0.859782761411197,0.663919655839934,0.528768173362126,0.8844881972261,1.52641477623411,0.791062201537263,0.523418451332002,0.895416216509333],"y":[28,15,29,16,35,19,12,22,7,26,30,1,37,11,36,2,10,39,4,32,14,17,3,25,24,38,23,8,31,33,27,18,9,6,20,34,13,5,21],"text":["estimate: 1.2013830","estimate: 0.8295651","estimate: 1.2047701","estimate: 0.8383212","estimate: 1.9141139","estimate: 0.8745297","estimate: 0.7318825","estimate: 0.9058598","estimate: 0.5753359","estimate: 1.1916272","estimate: 1.2054472","estimate: 0.1865841","estimate: 3.7481489","estimate: 0.6695392","estimate: 2.4189478","estimate: 0.3051956","estimate: 0.6681187","estimate: 4.5772600","estimate: 0.3978216","estimate: 1.3333003","estimate: 0.8044581","estimate: 0.8467310","estimate: 0.3326128","estimate: 1.1835867","estimate: 1.1665581","estimate: 3.9921099","estimate: 0.9118938","estimate: 0.6049735","estimate: 1.3279551","estimate: 1.3580679","estimate: 1.1956629","estimate: 0.8597828","estimate: 0.6639197","estimate: 0.5287682","estimate: 0.8844882","estimate: 1.5264148","estimate: 0.7910622","estimate: 0.5234185","estimate: 0.8954162"],"type":"scatter","mode":"markers+lines","marker":{"autocolorscale":false,"color":"rgba(0,0,0,1)","opacity":1,"size":5.66929133858268,"symbol":"circle","line":{"width":1.88976377952756,"color":"rgba(0,0,0,1)"}},"hoveron":"points","showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","opacity":1,"line":{"color":"transparent"},"error_x":{"array":[0.0490128603115776,0.030628541881533,0.0321802968978893,0.0427695019333593,0.101450014463856,0.0357821178252387,0.0433628187322119,0.0460691384369728,0.14652564499611,0.0822190366991034,0.0719038203636,0.334112985635702,0.657328362753423,0.198694706541413,0.358292784447601,0.323044888836039,0.153725377564811,0.570564110099973,0.319857713627183,0.0323101090841107,0.0415601937076527,0.0403879023376204,0.302730949670793,0.0319778920738454,0.0319392071193418,0.3539469439039,0.0284712934710093,0.188849752934514,0.039984519438877,0.0407599929123537,0.0308184040382526,0.031901252720551,0.0371665519303753,0.15852831864525,0.0302888012801453,0.128929355319802,0.0372400527068726,0.175605521555582,0.0278955066386349],"arrayminus":[0.0490128603115776,0.030628541881533,0.0321802968978893,0.0427695019333593,0.101450014463855,0.0357821178252387,0.0433628187322119,0.0460691384369728,0.14652564499611,0.0822190366991034,0.0719038203636,0.334112985635703,0.657328362753423,0.198694706541413,0.358292784447601,0.323044888836039,0.153725377564811,0.570564110099973,0.319857713627183,0.0323101090841107,0.0415601937076527,0.0403879023376204,0.302730949670793,0.0319778920738454,0.0319392071193418,0.3539469439039,0.0284712934710093,0.188849752934514,0.039984519438877,0.0407599929123537,0.0308184040382526,0.031901252720551,0.0371665519303753,0.15852831864525,0.0302888012801453,0.128929355319802,0.0372400527068726,0.175605521555582,0.0278955066386349],"type":"data","width":5.73979591836734,"symmetric":false,"color":"rgba(0,0,0,1)"},"frame":null}],"layout":{"margin":{"t":51.387297633873,"r":39.8505603985056,"b":63.1166459111665,"l":312.660855126609},"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":15.2760481527605},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.412296566599975,5.4125917620518],"tickmode":"array","ticktext":["0","1","2","3","4","5"],"tickvals":[-5.55111512312578e-17,1,2,3,4,5],"categoryorder":"array","categoryarray":["0","1","2","3","4","5"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(204,204,204,1)","gridwidth":0.265670402656704,"zeroline":false,"anchor":"y","title":{"text":"Odds Ratio + Standard Error","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.4,39.6],"tickmode":"array","ticktext":["Rd Feature Five Point Or More","Rd Feature Underpass","Light Cond Other","Rd Surface Other","Developmen Industrial","Workzone Yes","Rd Feature Bridge","Traff Cntrl Other","Speed Limit 50 55 Mph","Rd Feature Y Intersection","Rd Feature Shared Use Paths Or Trails","Rd Class Us Route","Developmen Farms Woods Pastures","Light Cond Dark Lighted Roadway","Rd Hill Yes","Rd Class Nc Route","Light Cond Dark Roadway Not Lighted","Speed Limit 40 45 Mph","Rd Class State Secondary Route","Crash Loc Non Intersection","Developmen Residential","Rd Conditio Dirty Wet","Traff Cntrl No Control Present","Rural Urban Urban","Locality Urban 70 Developed ","Rd Feature Driveway Private","Speed Limit 30 35 Mph","Rd Bent Straight","Rd Class Local Street","Rd Feature Driveway Public","Traff Cntrl Stop And Go Signal","Light Cond Daylight","Speed Limit 20 25 Mph","Crash Loc Non Roadway","Rd Class Public Vehicular Area","Rd Feature Traffic Circle Roundabout","Rd Feature Non Intersection Median Crossing","Traff Cntrl Flashing Stop And Go Signal","Rd Surface Gravel"],"tickvals":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39],"categoryorder":"array","categoryarray":["Rd Feature Five Point Or More","Rd Feature Underpass","Light Cond Other","Rd Surface Other","Developmen Industrial","Workzone Yes","Rd Feature Bridge","Traff Cntrl Other","Speed Limit 50 55 Mph","Rd Feature Y Intersection","Rd Feature Shared Use Paths Or Trails","Rd Class Us Route","Developmen Farms Woods Pastures","Light Cond Dark Lighted Roadway","Rd Hill Yes","Rd Class Nc Route","Light Cond Dark Roadway Not Lighted","Speed Limit 40 45 Mph","Rd Class State Secondary Route","Crash Loc Non Intersection","Developmen Residential","Rd Conditio Dirty Wet","Traff Cntrl No Control Present","Rural Urban Urban","Locality Urban 70 Developed ","Rd Feature Driveway Private","Speed Limit 30 35 Mph","Rd Bent Straight","Rd Class Local Street","Rd Feature Driveway Public","Traff Cntrl Stop And Go Signal","Light Cond Daylight","Speed Limit 20 25 Mph","Crash Loc Non Roadway","Rd Class Public Vehicular Area","Rd Feature Traffic Circle Roundabout","Rd Feature Non Intersection Median Crossing","Traff Cntrl Flashing Stop And Go Signal","Rd Surface Gravel"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.81901203819012,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"IBMPlexSans","size":11.9551681195517},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(204,204,204,1)","gridwidth":0.265670402656704,"zeroline":false,"anchor":"x","title":{"text":"Predictor Variable","font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":11.9551681195517}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"IBMPlexSans","size":12.2208385222084}},"hovermode":"closest","width":666,"height":750,"barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false,"displayModeBar":false},"source":"A","attrs":{"1770c3a995fe3":{"x":{},"y":{},"type":"scatter"},"1770c2b664e23":{"x":{},"y":{},"xmin":{},"xmax":{}}},"cur_data":"1770c3a995fe3","visdat":{"1770c3a995fe3":["function (y) ","x"],"1770c2b664e23":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+<pre class="r"><code>#last_fit_table &lt;- 
+bike_last_fit %&gt;% 
+  pull(.workflow) %&gt;% 
+  pluck(1) %&gt;% 
+  tidy(exponentiate = TRUE) %&gt;% 
+  filter(term != &quot;(Intercept)&quot;,
+         p.value &lt; 0.05) %&gt;% 
+  arrange(term) %&gt;% 
+  mutate(p.value = round(p.value, 3),
+         statistic = round(statistic, 3),
+         std.error = round(std.error, 3),
+         estimate = round(estimate, 3)) %&gt;% 
+  print(n = 100) </code></pre>
+<pre><code>## # A tibble: 39 × 5
+##    term                                     estimate std.error statistic p.value
+##    &lt;chr&gt;                                       &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+##  1 crash_loc_Non.Intersection                  0.884     0.03      -4.05   0    
+##  2 crash_loc_Non.Roadway                       1.53      0.129      3.28   0.001
+##  3 developmen_Farms..Woods..Pastures           0.791     0.037     -6.29   0    
+##  4 developmen_Industrial                       0.523     0.176     -3.69   0    
+##  5 developmen_Residential                      0.895     0.028     -3.96   0    
+##  6 light_cond_Dark...Lighted.Roadway           0.804     0.042     -5.24   0    
+##  7 light_cond_Dark...Roadway.Not.Lighted       0.847     0.04      -4.12   0    
+##  8 light_cond_Daylight                         1.33      0.032      8.90   0    
+##  9 light_cond_Other                            0.333     0.303     -3.64   0    
+## 10 locality_Urban...70..Developed.             1.18      0.032      5.27   0    
+## 11 rd_bent_Straight                            1.20      0.049      3.74   0    
+## 12 rd_class_Local.Street                       1.20      0.032      5.79   0    
+## 13 rd_class_NC.Route                           0.838     0.043     -4.12   0    
+## 14 rd_class_Public.Vehicular.Area              1.91      0.101      6.4    0    
+## 15 rd_class_State.Secondary.Route              0.875     0.036     -3.75   0    
+## 16 rd_class_US.Route                           0.732     0.043     -7.20   0    
+## 17 rd_conditio_Dirty.wet                       0.906     0.046     -2.15   0.032
+## 18 rd_feature_Bridge                           0.575     0.147     -3.77   0    
+## 19 rd_feature_Driveway..Private                1.19      0.082      2.13   0.033
+## 20 rd_feature_Driveway..Public                 1.20      0.072      2.60   0.009
+## 21 rd_feature_Five.Point..Or.More              0.187     0.334     -5.03   0    
+## 22 rd_feature_Non.Intersection.Median.Cros…    3.75      0.657      2.01   0.044
+## 23 rd_feature_Shared.Use.Paths.Or.Trails       0.67      0.199     -2.02   0.043
+## 24 rd_feature_Traffic.Circle.Roundabout        2.42      0.358      2.46   0.014
+## 25 rd_feature_Underpass                        0.305     0.323     -3.67   0    
+## 26 rd_feature_Y.Intersection                   0.668     0.154     -2.62   0.009
+## 27 rd_hill_Yes                                 0.83      0.031     -6.10   0    
+## 28 rd_surface_Gravel                           4.58      0.571      2.67   0.008
+## 29 rd_surface_Other                            0.398     0.32      -2.88   0.004
+## 30 rural_urban_Urban                           1.17      0.032      4.82   0    
+## 31 speed_limit_X20...25..MPH                   1.36      0.041      7.51   0    
+## 32 speed_limit_X30...35..MPH                   1.20      0.031      5.80   0    
+## 33 speed_limit_X40...45..MPH                   0.86      0.032     -4.74   0    
+## 34 speed_limit_X50...55..MPH                   0.664     0.037    -11.0    0    
+## 35 traff_cntrl_Flashing.Stop.And.Go.Signal     3.99      0.354      3.91   0    
+## 36 traff_cntrl_No.Control.Present              0.912     0.028     -3.24   0.001
+## 37 traff_cntrl_Other                           0.605     0.189     -2.66   0.008
+## 38 traff_cntrl_Stop.And.Go.Signal              1.33      0.04       7.09   0    
+## 39 workzone_Yes                                0.529     0.159     -4.02   0</code></pre>
+</div>
+</div>

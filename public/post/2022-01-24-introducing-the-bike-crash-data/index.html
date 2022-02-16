@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html
+  dir="ltr"
+  lang="en"
+  data-theme="light"
+><head>
+  <title>
+    
+      Sighvatur S. Davidsson
+        |
+        Introducing the bike crash-dataset
+
+
+      
+
+
+    
+  </title>
+
+  
+  <meta charset="utf-8" /><meta name="generator" content="Hugo 0.85.0" /><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta
+    name="description"
+    content="
+       I do data science. This is my blog. Have a look around!
+
+
+    "
+  />
+  
+  
+  
+  <link
+    rel="stylesheet"
+    href="/css/main.min.584012b9a00194c3363aca652bf7e49507bafe6b7305509c0aec0b94e516a565.css"
+    integrity="sha256-WEASuaABlMM2OsplK/fklQe6/mtzBVCcCuwLlOUWpWU="
+    crossorigin="anonymous"
+    type="text/css"
+  />
+  
+  
+  <link
+    rel="stylesheet"
+    href="/css/markupHighlight.min.058b31f17db60602cc415fd63b0427e7932fbf35c70d8e341a4c39385f5f6f3e.css"
+    integrity="sha256-BYsx8X22BgLMQV/WOwQn55MvvzXHDY40Gkw5OF9fbz4="
+    crossorigin="anonymous"
+    type="text/css"
+  />
+  
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+    integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA=="
+    crossorigin="anonymous"
+  />
+  
+  <link rel="shortcut icon" href="/favicons/favicon.ico" type="image/x-icon" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/favicons/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicons/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicons/favicon-16x16.png" />
+
+  <link rel="canonical" href="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/" />
+
+  
+  
+  
+  
+  <script
+    type="text/javascript"
+    src="/js/anatole-header.min.2a2cd9614b7d007dfbb75e8da19e3a0fa872ceab53c6d000c00b7a0c89b85bfc.js"
+    integrity="sha256-KizZYUt9AH37t16NoZ46D6hyzqtTxtAAwAt6DIm4W/w="
+    crossorigin="anonymous"
+  ></script>
+
+  
+    
+    
+    <script
+      type="text/javascript"
+      src="/js/anatole-theme-switcher.min.7fd87181cdd7e8413aa64b6867bb32f3a8dc242e684fc7d5bbb9f600dbc2b6eb.js"
+      integrity="sha256-f9hxgc3X6EE6pktoZ7sy86jcJC5oT8fVu7n2ANvCtus="
+      crossorigin="anonymous"
+    ></script>
+
+  
+  <meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="Introducing the bike crash-dataset"/>
+<meta name="twitter:description" content="An outline for this post: For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina."/>
+
+
+
+  
+
+
+  
+  
+  
+  
+  <script type="application/ld+json">
+    {
+        "@context": "http://schema.org",
+        "@type": "BlogPosting",
+        "articleSection": "post",
+        "name": "Introducing the bike crash-dataset",
+        "headline": "Introducing the bike crash-dataset",
+        "alternativeHeadline": "",
+        "description": "
+      
+        An outline for this post: For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina.
+
+
+      
+
+
+    ",
+        "inLanguage": "en",
+        "isFamilyFriendly": "true",
+        "mainEntityOfPage": {
+            "@type": "WebPage",
+            "@id": "https:\/\/sdavidsson.netlify.app\/post\/2022-01-24-introducing-the-bike-crash-data\/"
+        },
+        "author" : {
+            "@type": "Person",
+            "name": "Sighvatur S. Davidsson"
+        },
+        "creator" : {
+            "@type": "Person",
+            "name": "Sighvatur S. Davidsson"
+        },
+        "accountablePerson" : {
+            "@type": "Person",
+            "name": "Sighvatur S. Davidsson"
+        },
+        "copyrightHolder" : {
+            "@type": "Person",
+            "name": "Sighvatur S. Davidsson"
+        },
+        "copyrightYear" : "2022",
+        "dateCreated": "2022-02-04T00:00:00.00Z",
+        "datePublished": "2022-02-04T00:00:00.00Z",
+        "dateModified": "2022-02-04T00:00:00.00Z",
+        "publisher":{
+            "@type":"Organization",
+            "name": "Sighvatur S. Davidsson",
+            "url": "https://sdavidsson.netlify.app/",
+            "logo": {
+                "@type": "ImageObject",
+                "url": "https:\/\/sdavidsson.netlify.app\/favicons\/favicon-32x32.png",
+                "width":"32",
+                "height":"32"
+            }
+        },
+        "image": 
+      [
+      ]
+
+    ,
+        "url" : "https:\/\/sdavidsson.netlify.app\/post\/2022-01-24-introducing-the-bike-crash-data\/",
+        "wordCount" : "3090",
+        "genre" : [ ],
+        "keywords" : [ ]
+    }
+  </script>
+
+
+
+</head>
+<body>
+    <header><div
+  class="page-top 
+    animated fadeInDown
+
+  "
+>
+  <a role="button" class="navbar-burger" data-target="navMenu" aria-label="menu" aria-expanded="false">
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+    <span aria-hidden="true"></span>
+  </a>
+  <nav>
+    <ul class="nav__list" id="navMenu">
+      <div class="nav__links">
+        
+        
+          
+          <li>
+            <a
+              
+              href="/"
+              
+              title=""
+              >Home</a
+            >
+          </li>
+
+        
+          
+          <li>
+            <a
+              
+              href="/post/"
+              
+              title=""
+              >Posts</a
+            >
+          </li>
+
+        
+          
+          <li>
+            <a
+              
+              href="/about/"
+              
+              title=""
+              >About</a
+            >
+          </li>
+
+        
+      </div>
+      <ul>
+        
+        
+          <li>
+            <a class="theme-switch" title="Switch Theme">
+              <i class="fas fa-adjust fa-fw" aria-hidden="true"></i>
+            </a>
+          </li>
+
+        
+      </ul>
+    </ul>
+  </nav>
+</div>
+</header>
+    <div class="wrapper">
+      <aside><div
+  class="sidebar
+    animated fadeInDown
+
+  "
+>
+  <div class="sidebar__content">
+    <div class="logo-title">
+      <div class="title">
+        <img src="/images/profile.jpg" alt="profile picture" />
+        <h3 title=""><a href="/">Sighvatur S. Davidsson</a></h3>
+        <div class="description">
+          <p> I do data science. This is my blog. Have a look around!</p>
+        </div>
+      </div>
+    </div>
+    <ul class="social-links">
+      
+        <li>
+          <a href="https://www.linkedin.com/in/sighvatur-s-davidsson-8807aa105/" rel="me" aria-label="Linkedin" title="Linkedin">
+            <i class="fab fa-linkedin fa-2x" aria-hidden="true"></i>
+          </a>
+        </li>
+
+      
+        <li>
+          <a href="https://github.com/sdavidsson90" rel="me" aria-label="GitHub" title="GitHub">
+            <i class="fab fa-github fa-2x" aria-hidden="true"></i>
+          </a>
+        </li>
+
+      
+        <li>
+          <a href="mailto:sdavidsson90@outlook.dk" rel="me" aria-label="e-mail" title="e-mail">
+            <i class="fas fa-envelope fa-2x" aria-hidden="true"></i>
+          </a>
+        </li>
+
+      
+    </ul>
+  </div><footer class="footer footer--sidebar">
+  <div class="by_farbox">
+    <ul class="footer__list">
+      <li class="footer__item">
+        &copy;
+        
+          Sighvatur S. Davidsson
+          2022
+
+
+        
+      </li>
+      
+    </ul>
+  </div>
+</footer>
+  
+  <script
+    type="text/javascript"
+    src="/js/medium-zoom.min.71100d84fab0ad794b8399a66ac810700cc78d703f715dc10af4d7ba7b761362.js"
+    integrity="sha256-cRANhPqwrXlLg5mmasgQcAzHjXA/cV3BCvTXunt2E2I="
+    crossorigin="anonymous"
+  ></script></div>
+</aside>
+      <main>
+        <div class="autopagerize_page_element">
+          <div class="content">
+  <div
+    class="post 
+      animated fadeInDown
+
+    "
+  >
+    <div class="post-content">
+      
+      <div class="post-title">
+        <h1>Introducing the bike crash-dataset</h1>
+        
+          <div class="info">
+            <em class="fas fa-calendar-day"></em>
+            <span class="date"
+              >
+                4/2/2022
+
+
+              </span
+            >
+            <em class="fas fa-stopwatch"></em>
+            <span class="reading-time">15-minute read</span>
+          </div>
+
+        
+      </div>
+<script src="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/index.en_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="an-outline-for-this-post" class="section level3">
+<h3>An outline for this post:</h3>
+<p>For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with <a href="https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d">an example of some simple EDA</a> attached - but no machine learning solutions.</p>
+<p>My first four blog posts will therefore be a presentation of some of the learnings I did in that process. Their subject matters are:</p>
+<ol style="list-style-type: decimal">
+<li>Introducing the bike crash-dataset</li>
+<li>Mapping bike crashes with GIS-tools using the command line</li>
+<li>Identifying environmental factors that affect the number of crashes</li>
+<li>How can these insights make an impact?</li>
+</ol>
+<p>In this first blog post I will be presenting the dataset. I have already done some <a href="https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R">preprocessing</a>, but here we will be focusing on gaining a general understanding of the dataset.</p>
+<p><strong>Short introduction to the dataset:</strong></p>
+<p>This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities: North Carolina Division of Motor Vehicles. The information has been sourced from police reports, and manually been put in a tabular form by the University of North Carolina. Overall quality of registrations is therefore assumed to be high. There is however a problem with documentation. We don’t have explanations for the variables’ meaning but have to rely on their names (which are often abbrevations) and the content of the registrations.</p>
+<p>The original dataset can be accesed <a href="https://www.pedbikeinfo.org/pbcat_nc/_bicycle.cfm">here</a>, and officially provided information about the dataset <a href="https://www.pedbikeinfo.org/pbcat_nc/_bicycle-about.cfm">here</a>.</p>
+</div>
+<div id="lets-have-a-quick-look-at-the-dataset" class="section level3">
+<h3>Let’s have a quick look at the dataset</h3>
+<pre class="r"><code># Load packages
+pacman::p_load(tidyverse)
+
+# Read in datasets
+bike_crash &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/bike_crash.rds&quot;)
+
+# The quick look
+glimpse(bike_crash)</code></pre>
+<pre><code>## Rows: 12,173
+## Columns: 55
+## $ x            &lt;dbl&gt; -78.88390, -78.78280, -80.69782, -80.47932, -78.90445, -8…
+## $ y            &lt;dbl&gt; 36.03949, 35.75112, 35.08473, 35.68440, 34.99943, 35.6666…
+## $ objectid_1   &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…
+## $ ambulance_r  &lt;fct&gt; Yes, Yes, Yes, Yes, Yes, Yes, No, Yes, Yes, No, Yes, Yes,…
+## $ bike_age     &lt;dbl&gt; 11, 20, 37, 30, 45, 58, 51, 13, 18, 39, 19, 35, 40, 31, 1…
+## $ bike_age_grp &lt;fct&gt; 11-15, 20-24, 30-39, 30-39, 40-49, 50-59, 50-59, 11-15, 1…
+## $ bike_alc_drg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No…
+## $ bike_alc_flg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;N…
+## $ bike_dir     &lt;chr&gt; &quot;With Traffic&quot;, &quot;Facing Traffic&quot;, NA, &quot;With Traffic&quot;, &quot;Wi…
+## $ bike_injury  &lt;chr&gt; &quot;Suspected Minor Injury&quot;, &quot;Possible Injury&quot;, &quot;Suspected M…
+## $ bike_pos     &lt;chr&gt; &quot;Sidewalk / Crosswalk / Driveway Crossing&quot;, &quot;Sidewalk / C…
+## $ bike_race    &lt;chr&gt; &quot;Black&quot;, &quot;Hispanic&quot;, &quot;Black&quot;, &quot;White&quot;, &quot;Black&quot;, &quot;White&quot;, …
+## $ bike_sex     &lt;chr&gt; &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;Male&quot;, &quot;…
+## $ city         &lt;chr&gt; &quot;Durham&quot;, &quot;Cary&quot;, &quot;Stallings&quot;, &quot;Salisbury&quot;, &quot;Fayetteville…
+## $ county       &lt;chr&gt; &quot;Durham&quot;, &quot;Wake&quot;, &quot;Union&quot;, &quot;Rowan&quot;, &quot;Cumberland&quot;, &quot;Rowan&quot;…
+## $ crash_alcoh  &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;N…
+## $ crash_day    &lt;fct&gt; Tuesday, Friday, Monday, Friday, Friday, Wednesday, Satur…
+## $ crash_grp    &lt;chr&gt; &quot;Parallel Paths - Other Circumstances&quot;, &quot;Motorist Failed …
+## $ crash_hour   &lt;fct&gt; 16, 9, 17, 17, 12, 9, 19, 15, 8, 9, 21, 11, 20, 15, 14, 8…
+## $ crash_id     &lt;dbl&gt; 101878313, 101885911, 101886055, 101890155, 101899756, 10…
+## $ crash_loc    &lt;chr&gt; &quot;Non-Intersection&quot;, &quot;Intersection&quot;, &quot;Non-Roadway&quot;, &quot;Inter…
+## $ crash_month  &lt;fct&gt; January, January, January, January, January, January, Jan…
+## $ crash_sevr   &lt;fct&gt; Suspected Minor Injury, Possible Injury, Suspected Minor …
+## $ crash_type   &lt;chr&gt; &quot;Bicyclist Ride Out - Parallel Path&quot;, &quot;Motorist Drive Out…
+## $ crash_year   &lt;fct&gt; 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007, 2007, 200…
+## $ developmen   &lt;chr&gt; &quot;Residential&quot;, &quot;Residential&quot;, &quot;Commercial&quot;, &quot;Commercial&quot;,…
+## $ drvr_age     &lt;dbl&gt; 35, 64, 39, NA, 51, NA, 61, 18, NA, NA, 24, 27, 21, 17, 6…
+## $ drvr_age_grp &lt;fct&gt; 30-39, 60-69, 30-39, NA, 50-59, NA, 60-69, 0-19, NA, 70+,…
+## $ drvr_alc_drg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No…
+## $ drvr_alc_flg &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, NA, &quot;No&quot;,…
+## $ drvr_injury  &lt;chr&gt; &quot;No Injury&quot;, &quot;No Injury&quot;, &quot;No Injury&quot;, NA, &quot;No Injury&quot;, N…
+## $ drvr_race    &lt;chr&gt; &quot;White&quot;, &quot;White&quot;, &quot;White&quot;, NA, &quot;Black&quot;, NA, &quot;White&quot;, &quot;Bla…
+## $ drvr_sex     &lt;chr&gt; &quot;Male&quot;, &quot;Male&quot;, &quot;Female&quot;, NA, &quot;Female&quot;, NA, &quot;Male&quot;, &quot;Fema…
+## $ drvr_veh_typ &lt;chr&gt; &quot;Passenger Car&quot;, &quot;Passenger Car&quot;, &quot;Passenger Car&quot;, &quot;Sport…
+## $ hit_run      &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;Yes&quot;, …
+## $ latitude     &lt;dbl&gt; 36.03949, 35.75112, 35.08473, 35.68440, 34.99943, 35.6666…
+## $ light_cond   &lt;fct&gt; Daylight, Daylight, Dusk, Daylight, Daylight, Daylight, D…
+## $ locality     &lt;fct&gt; Urban (&gt;70% Developed), Urban (&gt;70% Developed), Urban (&gt;7…
+## $ longitude    &lt;dbl&gt; -78.88390, -78.78280, -80.69782, -80.47932, -78.90445, -8…
+## $ num_lanes    &lt;dbl&gt; 1, 3, 2, 2, 2, 2, 2, 2, 5, 2, 4, 6, 4, 2, 2, 5, 2, 2, 2, …
+## $ num_units    &lt;dbl&gt; 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, …
+## $ rd_bent      &lt;chr&gt; &quot;Straight&quot;, &quot;Straight&quot;, &quot;Straight&quot;, &quot;Straight&quot;, &quot;Straight…
+## $ rd_hill      &lt;chr&gt; &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;Yes&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, …
+## $ rd_class     &lt;chr&gt; &quot;Local Street&quot;, &quot;Local Street&quot;, &quot;Public Vehicular Area&quot;, …
+## $ rd_conditio  &lt;chr&gt; &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Clean&quot;, &quot;Cl…
+## $ rd_config    &lt;chr&gt; &quot;Two-Way, Divided, Unprotected Median&quot;, &quot;Two-Way, Divided…
+## $ rd_defects   &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, NA,…
+## $ rd_feature   &lt;chr&gt; &quot;No Special Feature&quot;, &quot;Four-Way Intersection&quot;, &quot;No Specia…
+## $ rd_surface   &lt;chr&gt; &quot;Smooth Asphalt&quot;, &quot;Smooth Asphalt&quot;, &quot;Smooth Asphalt&quot;, &quot;Sm…
+## $ region       &lt;chr&gt; &quot;Piedmont&quot;, &quot;Piedmont&quot;, &quot;Piedmont&quot;, &quot;Piedmont&quot;, &quot;Coastal&quot;…
+## $ rural_urban  &lt;chr&gt; &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Urban&quot;, &quot;Ru…
+## $ speed_limit  &lt;fct&gt; 30 - 35  MPH, 30 - 35  MPH, 20 - 25  MPH, 30 - 35  MPH, 3…
+## $ traff_cntrl  &lt;chr&gt; &quot;No Control Present&quot;, &quot;Stop And Go Signal&quot;, &quot;No Control P…
+## $ weather      &lt;chr&gt; &quot;Clear&quot;, &quot;Clear&quot;, &quot;Cloudy&quot;, &quot;Cloudy&quot;, &quot;Clear&quot;, &quot;Clear&quot;, &quot;…
+## $ workzone     &lt;chr&gt; &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No&quot;, &quot;No…</code></pre>
+<pre class="r"><code># How many variable types are there?
+tibble(
+  &quot;var&quot; = names(sapply(bike_crash, class)),
+  &quot;type&quot; = sapply(bike_crash, class)) %&gt;%
+  count(type)</code></pre>
+<pre><code>## # A tibble: 3 × 2
+##   type          n
+##   &lt;chr&gt;     &lt;int&gt;
+## 1 character    34
+## 2 factor       11
+## 3 numeric      10</code></pre>
+<p>The total number of variables for this dataset is 55. The coordinates of the crash locations do however appear twice - leaving us with 53 distinct variables (where one is an <em>object id</em> - ie. specific to the dataset and not the crash registration).</p>
+<p>Most of the variables (34) have been read as character variables. In my preprocessing I coded some of the variables to factors, which also should be noted. These are to a varying degree qualitative/non-quantifiable (some examples are <em>light conditions , crash year, ambulance requirements</em>). As we do not know the calendar day number we cannot create a precise date-time variable. This is most likely done as an anonymising measure and is to be respected - not reversed.</p>
+<p>Only 10 variables have been read as numeric. Excluding the <em>object_id</em> and <em>date-time</em> variables, only <em>the age of driver and cyclist, number of lanes, number of units involved</em> and <em>coordinates</em> have actual numeric meaning.</p>
+<p>An important point to note is therefore, that the dataset has a rather qualitative nature. This poses a problem to certain kinds of machine learning methods, but we can adapt our analysis and learning goals to methods that are more fit for this kind if dataset.</p>
+<div id="how-text-heavy-are-the-variables" class="section level4">
+<h4>How <em>text heavy</em> are the variables?</h4>
+<pre class="r"><code>bike_crash %&gt;% count(crash_type, sort = T) </code></pre>
+<pre><code>## # A tibble: 65 × 2
+##    crash_type                                                n
+##    &lt;chr&gt;                                                 &lt;int&gt;
+##  1 &lt;NA&gt;                                                   2580
+##  2 Motorist Drive Out - Sign-Controlled Intersection      1078
+##  3 Motorist Left Turn - Opposite Direction                 911
+##  4 Motorist Drive Out - Commercial Driveway / Alley        742
+##  5 Bicyclist Ride Through - Sign-Controlled Intersection   580
+##  6 Non-Roadway                                             538
+##  7 Motorist Right Turn - Same Direction                    532
+##  8 Bicyclist Left Turn - Same Direction                    451
+##  9 Motorist Overtaking - Undetected Bicyclist              439
+## 10 Bicyclist Ride Through - Signalized Intersection        404
+## # … with 55 more rows</code></pre>
+<p>This is interesting. We get a detailed description of the accident - but this might also pose a threat to our goal of applying machine learning to this dataset. It’s not so much the length of the text, as much the sheer number of categories (65!) that is of concern. This variable will therefore probably not be used in my later modelling.</p>
+<p>Instead take a look at this one:</p>
+<pre class="r"><code>bike_crash %&gt;% count(drvr_veh_typ, sort = T) %&gt;% print(n = 100)</code></pre>
+<pre><code>## # A tibble: 25 × 2
+##    drvr_veh_typ                             n
+##    &lt;chr&gt;                                &lt;int&gt;
+##  1 Passenger Car                         6363
+##  2 Sport Utility                         2086
+##  3 Pickup                                1554
+##  4 &lt;NA&gt;                                  1000
+##  5 Van                                    574
+##  6 Light Truck (Mini-Van, Panel)          169
+##  7 Single Unit Truck (2-Axle, 6-Tire)      83
+##  8 Motorcycle                              61
+##  9 Police                                  59
+## 10 Commercial Bus                          29
+## 11 Tractor/Semi-Trailer                    29
+## 12 Pedalcycle                              28
+## 13 Truck/Trailer                           27
+## 14 Single Unit Truck (3 Or More Axles)     23
+## 15 School Bus                              22
+## 16 Taxicab                                 19
+## 17 Other Bus                               18
+## 18 Moped                                    9
+## 19 Pedestrian                               7
+## 20 Motor Home/Recreational Vehicle          4
+## 21 EMS Vehicle, Ambulance, Rescue Squad     3
+## 22 Activity Bus                             2
+## 23 Truck/Tractor                            2
+## 24 All Terrain Vehicle (ATV)                1
+## 25 Firetruck                                1</code></pre>
+<p>We are a bit luckier this time. The level of detail we can make out from this variable is high, and the number of categories is less (25). This is however still a very high number, but for some of them we see less than 100 registrations. Should we gather these in an <em>other</em> category? Maybe. But for now we’ll leave them as they are.</p>
+</div>
+<div id="how-many-missing-registrations" class="section level4">
+<h4>How many missing registrations?</h4>
+<p>Prior to further work on the dataset it is also a good idea to get an impression of missing values across the dataset, as this also might be a cause for concern for some models (eg. the standard random forest model).</p>
+<pre class="r"><code># How many missings are there across the dataset?
+tibble(
+  &quot;variable_name&quot; = colnames(bike_crash),
+  &quot;number_of_rows&quot; = nrow(bike_crash),
+  &quot;number_of_na&quot; = map_int(bike_crash, ~(sum(is.na(.x)))),
+  &quot;pct_missing&quot; = number_of_na/number_of_rows*100) %&gt;% 
+  mutate(pct_missing = case_when(pct_missing == Inf ~ 0, TRUE ~ pct_missing)) %&gt;% 
+  arrange(-pct_missing) %&gt;% 
+  print(n = ncol(bike_crash)) </code></pre>
+<pre><code>## # A tibble: 55 × 4
+##    variable_name number_of_rows number_of_na pct_missing
+##    &lt;chr&gt;                  &lt;int&gt;        &lt;int&gt;       &lt;dbl&gt;
+##  1 crash_type             12173         2580    21.2    
+##  2 drvr_age               12173         1873    15.4    
+##  3 drvr_alc_flg           12173         1762    14.5    
+##  4 drvr_injury            12173         1754    14.4    
+##  5 drvr_race              12173         1699    14.0    
+##  6 drvr_age_grp           12173         1675    13.8    
+##  7 drvr_sex               12173         1666    13.7    
+##  8 drvr_veh_typ           12173         1000     8.21   
+##  9 num_lanes              12173          711     5.84   
+## 10 bike_alc_flg           12173          654     5.37   
+## 11 bike_pos               12173          603     4.95   
+## 12 speed_limit            12173          586     4.81   
+## 13 rd_feature             12173          547     4.49   
+## 14 bike_dir               12173          461     3.79   
+## 15 bike_injury            12173          374     3.07   
+## 16 bike_race              12173          299     2.46   
+## 17 bike_age               12173          252     2.07   
+## 18 bike_sex               12173          235     1.93   
+## 19 bike_age_grp           12173          225     1.85   
+## 20 traff_cntrl            12173          153     1.26   
+## 21 rd_config              12173          143     1.17   
+## 22 crash_grp              12173           97     0.797  
+## 23 rd_class               12173           91     0.748  
+## 24 rd_bent                12173           77     0.633  
+## 25 rd_hill                12173           77     0.633  
+## 26 crash_sevr             12173           76     0.624  
+## 27 light_cond             12173           66     0.542  
+## 28 rd_surface             12173           57     0.468  
+## 29 rd_defects             12173           55     0.452  
+## 30 rd_conditio            12173           40     0.329  
+## 31 crash_loc              12173           10     0.0821 
+## 32 rural_urban            12173            1     0.00821
+## 33 x                      12173            0     0      
+## 34 y                      12173            0     0      
+## 35 objectid_1             12173            0     0      
+## 36 ambulance_r            12173            0     0      
+## 37 bike_alc_drg           12173            0     0      
+## 38 city                   12173            0     0      
+## 39 county                 12173            0     0      
+## 40 crash_alcoh            12173            0     0      
+## 41 crash_day              12173            0     0      
+## 42 crash_hour             12173            0     0      
+## 43 crash_id               12173            0     0      
+## 44 crash_month            12173            0     0      
+## 45 crash_year             12173            0     0      
+## 46 developmen             12173            0     0      
+## 47 drvr_alc_drg           12173            0     0      
+## 48 hit_run                12173            0     0      
+## 49 latitude               12173            0     0      
+## 50 locality               12173            0     0      
+## 51 longitude              12173            0     0      
+## 52 num_units              12173            0     0      
+## 53 region                 12173            0     0      
+## 54 weather                12173            0     0      
+## 55 workzone               12173            0     0</code></pre>
+<pre class="r"><code># Overall number of missings
+str_c(
+  &quot;Overall pct missing registrations: &quot;,
+    # Number of empty cells
+    round(
+    (sum(is.na(bike_crash)) /
+    # Number of cells
+    (ncol(bike_crash) * nrow(bike_crash)) * 100), 2), 
+    &quot; % (&quot;, sum(is.na(bike_crash)), 
+    &quot; out of &quot;, ncol(bike_crash) * nrow(bike_crash),
+    &quot;)&quot;
+    )</code></pre>
+<pre><code>## [1] &quot;Overall pct missing registrations: 2.97 % (19899 out of 669515)&quot;</code></pre>
+<pre class="r"><code>str_c(&quot;Number of complete observations: &quot;,
+      nrow(na.omit(bike_crash)), 
+      &quot;. (Out of &quot;,
+      nrow(bike_crash), 
+      &quot; original observations total)&quot;)</code></pre>
+<pre><code>## [1] &quot;Number of complete observations: 6133. (Out of 12173 original observations total)&quot;</code></pre>
+<p>We have an overall missing percentage of 3 % which seems quite good. Some models won’t work with any missings (NA’s) at all, but since we haven’t decided (or don’t have to make a decision yet) on what type of models we will be working with we don’t have to deal with these at the moment. There are several ways to fill in NA’s methodically, but for now let’s just note that completely eliminating NA’s would erase half of the dataset. That prospect doesn’t seem good.</p>
+</div>
+</div>
+<div id="initial-visualisation-of-the-dataset" class="section level3">
+<h3>Initial visualisation of the dataset</h3>
+<div id="where-do-accidents-occurr" class="section level4">
+<h4><em>Where</em> do accidents occurr?</h4>
+<p>First of all it would be interesting to see where accidents occur. Mapping crash locations over such a large area gives us a quite cluttered picture. Adjusting the transparency of the dots can provide us with a clearer picture but other visualisation methods might yield a more correct visualisation. I will show how that can be done in a later post! <a href="">upcoming link</a></p>
+<pre class="r"><code># Load some additional packages
+pacman::p_load(sf,             # Essential package for working with geographic data
+               tmap            # Mapping tool
+               )
+
+# Read in counties geometry
+nc_counties &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds&quot;)
+
+# Wehere do bike crashes occur?
+st_as_sf(bike_crash, coords = c(x = &quot;x&quot;, y = &quot;y&quot;), crs = &quot;NAD83&quot;) %&gt;%
+  tm_shape() + 
+  tm_dots(alpha = 0.1) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(frame = FALSE,
+            main.title = &quot;Crashes in North Carolina 2007-2019&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            main.title.size = 1,
+            ) </code></pre>
+<p><img src="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/index.en_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<pre class="r"><code>bike_crash %&gt;% count(rural_urban) %&gt;% 
+  mutate(pct = str_c(round(n/sum(n)*100, 0), &quot; %&quot;))</code></pre>
+<pre><code>## # A tibble: 3 × 3
+##   rural_urban     n pct  
+##   &lt;chr&gt;       &lt;int&gt; &lt;chr&gt;
+## 1 Rural        3397 28 % 
+## 2 Urban        8775 72 % 
+## 3 &lt;NA&gt;            1 0 %</code></pre>
+<p>The map also suggests that a majority of the crashes take place in urban areas, and less so in rural areas (Rural 28 % vs 72 % urban). This of course not an earth shaking insight, but it is certainly not an irrelevant point for further analysis. Here’s a map of the population size by county:</p>
+<pre class="r"><code># Read in population data
+nc_pop &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/ncpop_09_19.rds&quot;) %&gt;% st_as_sf()
+
+# Create population chloropeth map
+tm_shape(nc_pop) +
+  tm_polygons(&quot;est_2015&quot;, title = &quot;Population size (jenks)&quot;, style = &quot;jenks&quot;) +
+  tm_layout(frame = FALSE,
+            main.title = &quot;Population size by county (2015)&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            main.title.size = .95,
+            legend.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            legend.title.size = 0.85,
+            legend.text.fontfamily = &quot;IBM Plex Sans&quot;,
+            legend.text.size = 0.6,
+            legend.width = 8,
+            legend.height = 10) </code></pre>
+<p><img src="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/index.en_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>A simple test for correlation confirms this picture. The correlation coefficient for population size and number of accidents pr. county is 0.95. Very high!</p>
+<pre class="r"><code># We need to specify the geometry once and for all this time
+bike_crash &lt;- st_as_sf(bike_crash, coords = c(x = &quot;x&quot;, y = &quot;y&quot;), crs = &quot;NAD83&quot;)
+
+# Count number of accidents pr. counties
+nc_pop &lt;- nc_pop %&gt;% 
+  mutate(n_accidents = lengths(st_intersects(., bike_crash)))
+
+# Correlations test 
+cor.test(x = nc_pop$est_2015, y =  nc_pop$n_accidents, method = &quot;pearson&quot;)</code></pre>
+<pre><code>## 
+##  Pearson&#39;s product-moment correlation
+## 
+## data:  nc_pop$est_2015 and nc_pop$n_accidents
+## t = 30.804, df = 98, p-value &lt; 0.00000000000000022
+## alternative hypothesis: true correlation is not equal to 0
+## 95 percent confidence interval:
+##  0.9294293 0.9675352
+## sample estimates:
+##       cor 
+## 0.9520451</code></pre>
+</div>
+<div id="when-do-accidents-ocurr" class="section level4">
+<h4><em>When</em> do accidents ocurr?</h4>
+<pre class="r"><code># It&#39;s better to drop the geometry before making for summarising operations. This speeds up the process significantly!
+bike_crash &lt;- st_drop_geometry(bike_crash)
+
+# Set standard theming
+theme_set(hrbrthemes::theme_ipsum_ps())
+
+# Plotting crashes over time
+cowplot::plot_grid(
+  bike_crash %&gt;% count(crash_year) %&gt;% 
+    ggplot(aes(x = crash_year, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %&gt;% 
+    count(crash_month) %&gt;% 
+    ggplot(aes(x = crash_month, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %&gt;% 
+    count(crash_hour) %&gt;% 
+    ggplot(aes(x = crash_hour, y = n)) + 
+    geom_col()+ 
+    theme(axis.text.x=element_text(angle=90, hjust=1)),
+  bike_crash %&gt;% 
+    count(crash_day) %&gt;% 
+    ggplot(aes(x = crash_day, y = n)) + 
+    geom_col() + 
+    theme(axis.text.x=element_text(angle=90, hjust=1)))</code></pre>
+<p><img src="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/index.en_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>Plotting the time dimension also gives us a better understanding of underlying causes behind the accidents.</p>
+<ul>
+<li>The number of accidents seems to have remained on the same level in the period 2007 - 2019. There are fluctuations but - based on a simple visualisation - I would be hesitant to conclude that we have observed a decrease in the number of accidents over the years. It would also be interesting to compare this to the development of traffic volume in the state (or in specified areas) but unfortunately we don’t have acces to this information.</li>
+<li>There seems to be a seasonality effect at play. The number of accidents begins rising in March and by May we have reached a level which is held until September, when it begins to drop again. This is likely correlated with traffic volumes - ie. more people use their bikes when weather conditions are better. This is however a speculation not backed by data.</li>
+<li>Also the number of accident increases slowly from 5 in the morning until 5 in the evening where we see a steep drop.</li>
+<li>Finally we see that less accidents take place during the weekends. I will abstain from speculating why.</li>
+</ul>
+</div>
+</div>
+<div id="concluding-remarks" class="section level3">
+<h3>Concluding remarks:</h3>
+<ul>
+<li>I have introduced the dataset I will be working with in my first few blogposts.</li>
+<li>The dataset contains detailed observations of more than 12000 bike crashes in North Carolina in the period 2007 - 2019.</li>
+<li>The bike crashes are described in 52 distinct variables whereof many are quite text heavy. Only few variables have actual numeric meaning.</li>
+<li>The dataset is therefore highly qualitative in nature.</li>
+</ul>
+<p>Stay tuned!</p>
+</div>
+</div>
+    <div class="post-footer">
+      <div class="info">
+        
+
+        
+      </div>
+    </div>
+
+    
+  </div>
+
+
+          </div>
+        </div>
+      </main>
+    </div><footer class="footer footer--base">
+  <div class="by_farbox">
+    <ul class="footer__list">
+      <li class="footer__item">
+        &copy;
+        
+          Sighvatur S. Davidsson
+          2022
+
+
+        
+      </li>
+      
+    </ul>
+  </div>
+</footer>
+  
+  <script
+    type="text/javascript"
+    src="/js/medium-zoom.min.71100d84fab0ad794b8399a66ac810700cc78d703f715dc10af4d7ba7b761362.js"
+    integrity="sha256-cRANhPqwrXlLg5mmasgQcAzHjXA/cV3BCvTXunt2E2I="
+    crossorigin="anonymous"
+  ></script></body>
+</html>

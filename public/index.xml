@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Sighvatur S. Davidsson</title>
+    <link>https://sdavidsson.netlify.app/</link>
+    <description>Recent content on Sighvatur S. Davidsson</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 07 Feb 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://sdavidsson.netlify.app/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>KDE</title>
+      <link>https://sdavidsson.netlify.app/post/2022-02-07-kde/</link>
+      <pubDate>Mon, 07 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://sdavidsson.netlify.app/post/2022-02-07-kde/</guid>
+      
+        <description>  </description>
+      
+    </item>
+    
+    <item>
+      <title>Introducing the bike crash-dataset</title>
+      <link>https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/</link>
+      <pubDate>Fri, 04 Feb 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/</guid>
+      
+        <description>An outline for this post: For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina.</description>
+      
+    </item>
+    
+    <item>
+      <title>About</title>
+      <link>https://sdavidsson.netlify.app/about/</link>
+      <pubDate>Tue, 25 Jan 2022 00:00:00 +0000</pubDate>
+      
+      <guid>https://sdavidsson.netlify.app/about/</guid>
+      
+        <description>Who am I? I&amp;rsquo;m a data analyst with a background in social science.</description>
+      
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://sdavidsson.netlify.app/archives/</link>
+      <pubDate>Tue, 28 May 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://sdavidsson.netlify.app/archives/</guid>
+      
+        <description></description>
+      
+    </item>
+    
+    <item>
+      <title>Contact</title>
+      <link>https://sdavidsson.netlify.app/contact/</link>
+      <pubDate>Fri, 08 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>https://sdavidsson.netlify.app/contact/</guid>
+      
+        <description></description>
+      
+    </item>
+    
+    <item>
+      <title></title>
+      <link>https://sdavidsson.netlify.app/imprint/</link>
+      <pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate>
+      
+      <guid>https://sdavidsson.netlify.app/imprint/</guid>
+      
+        <description></description>
+      
+    </item>
+    
+  </channel>
+</rss>

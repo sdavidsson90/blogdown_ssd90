@@ -1,7 +1,7 @@
 ---
 title: 'Bike Crash 1: Introducing the bike crash-dataset'
-author: Sighvatur S. Davidsson
-date: '2022-02-04'
+author: "Sighvatur S. Davidsson"
+date: '2022-02-15'
 ---
 
 ```{r document, echo= FALSE}
@@ -15,6 +15,7 @@ options(scipen = 999)
 ```
 
 ### An outline for this post: 
+
 For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with [an example of some simple EDA](https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d) attached - but no machine learning solutions. 
 
 My first four blog posts will therefore be a presentation of some of the learnings I did in that process. Their subject matters are:
@@ -147,7 +148,7 @@ bike_crash %>% count(rural_urban) %>%
 
 ```
 
-The map also suggests that a majority of the crashes take place in urban areas, and less so in rural areas (Rural 28 % vs 72 % urban). This of course not an earth shaking insight, but it is certainly not an irrelevant point for further analysis. Here's a map of the population size by county:
+The map also suggests that a majority of the crashes take place in urban areas, and less so in rural areas (Rural 28 % vs 72 % urban). This of course not an earth shaking insight, but it is certainly not an irrelevant point for further analysis. Here I am using data  from the United States Census Bureau [aquired via tidycensus](https://github.com/sdavidsson90/bike_crash/blob/main/code/tidycensus.R) . Here's a map of the population size by county:
 
 ```{r}
 # Read in population data
@@ -214,6 +215,7 @@ cowplot::plot_grid(
     ggplot(aes(x = crash_day, y = n)) + 
     geom_col() + 
     theme(axis.text.x=element_text(angle=90, hjust=1)))
+
 
 ```
 

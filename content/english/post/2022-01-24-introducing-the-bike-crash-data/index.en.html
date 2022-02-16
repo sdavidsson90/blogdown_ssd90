@@ -1,7 +1,7 @@
 ---
 title: 'Bike Crash 1: Introducing the bike crash-dataset'
-author: Sighvatur S. Davidsson
-date: '2022-02-04'
+author: "Sighvatur S. Davidsson"
+date: '2022-02-15'
 ---
 
 <script src="{{< blogdown/postref >}}index.en_files/header-attrs/header-attrs.js"></script>
@@ -9,7 +9,7 @@ date: '2022-02-04'
 
 <div id="an-outline-for-this-post" class="section level3">
 <h3>An outline for this post:</h3>
-<p>For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with <a href="https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d">an example</a> of some simple EDA attached - but no machine learning solutions.</p>
+<p>For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with <a href="https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d">an example of some simple EDA</a> attached - but no machine learning solutions.</p>
 <p>My first four blog posts will therefore be a presentation of some of the learnings I did in that process. Their subject matters are:</p>
 <ol style="list-style-type: decimal">
 <li>Introducing the bike crash-dataset</li>
@@ -104,8 +104,8 @@ tibble(
 <p>Most of the variables (34) have been read as character variables. In my preprocessing I coded some of the variables to factors, which also should be noted. These are to a varying degree qualitative/non-quantifiable (some examples are <em>light conditions , crash year, ambulance requirements</em>). As we do not know the calendar day number we cannot create a precise date-time variable. This is most likely done as an anonymising measure and is to be respected - not reversed.</p>
 <p>Only 10 variables have been read as numeric. Excluding the <em>object_id</em> and <em>date-time</em> variables, only <em>the age of driver and cyclist, number of lanes, number of units involved</em> and <em>coordinates</em> have actual numeric meaning.</p>
 <p>An important point to note is therefore, that the dataset has a rather qualitative nature. This poses a problem to certain kinds of machine learning methods, but we can adapt our analysis and learning goals to methods that are more fit for this kind if dataset.</p>
-<div id="how-text-heavy-are-the-variables" class="section level5">
-<h5>How <em>text heavy</em> are the variables?</h5>
+<div id="how-text-heavy-are-the-variables" class="section level4">
+<h4>How <em>text heavy</em> are the variables?</h4>
 <pre class="r"><code>bike_crash %&gt;% count(crash_type, sort = T) </code></pre>
 <pre><code>## # A tibble: 65 × 2
 ##    crash_type                                                n
@@ -152,10 +152,10 @@ tibble(
 ## 23 Truck/Tractor                            2
 ## 24 All Terrain Vehicle (ATV)                1
 ## 25 Firetruck                                1</code></pre>
-<p>We are a bit luckier this time. The level of qualitative learnings we can make from this variable is high, and the number of categories is less (25). This is however still a very high number, but for some of them we see less than 100 registrations. Should we gather these in an <em>other</em> category? Maybe. But for now we’ll leave them as they are.</p>
+<p>We are a bit luckier this time. The level of detail we can make out from this variable is high, and the number of categories is less (25). This is however still a very high number, but for some of them we see less than 100 registrations. Should we gather these in an <em>other</em> category? Maybe. But for now we’ll leave them as they are.</p>
 </div>
-<div id="how-many-missing-registrations" class="section level5">
-<h5>How many missing registrations?</h5>
+<div id="how-many-missing-registrations" class="section level4">
+<h4>How many missing registrations?</h4>
 <p>Prior to further work on the dataset it is also a good idea to get an impression of missing values across the dataset, as this also might be a cause for concern for some models (eg. the standard random forest model).</p>
 <pre class="r"><code># How many missings are there across the dataset?
 tibble(
@@ -248,8 +248,8 @@ str_c(
 </div>
 <div id="initial-visualisation-of-the-dataset" class="section level3">
 <h3>Initial visualisation of the dataset</h3>
-<div id="where-do-accidents-occurr" class="section level5">
-<h5><em>Where</em> do accidents occurr?</h5>
+<div id="where-do-accidents-occurr" class="section level4">
+<h4><em>Where</em> do accidents occurr?</h4>
 <p>First of all it would be interesting to see where accidents occur. Mapping crash locations over such a large area gives us a quite cluttered picture. Adjusting the transparency of the dots can provide us with a clearer picture but other visualisation methods might yield a more correct visualisation. I will show how that can be done in a later post! <a href="">upcoming link</a></p>
 <pre class="r"><code># Load some additional packages
 pacman::p_load(sf,             # Essential package for working with geographic data
@@ -280,7 +280,7 @@ st_as_sf(bike_crash, coords = c(x = &quot;x&quot;, y = &quot;y&quot;), crs = &qu
 ## 1 Rural        3397 28 % 
 ## 2 Urban        8775 72 % 
 ## 3 &lt;NA&gt;            1 0 %</code></pre>
-<p>The map also suggests that a majority of the crashes take place in urban areas, and less so in rural areas (Rural 28 % vs 72 % urban). This of course not an earth shaking insight, but it is certainly not an irrelevant point for further analysis. Here’s a map of the population size by county:</p>
+<p>The map also suggests that a majority of the crashes take place in urban areas, and less so in rural areas (Rural 28 % vs 72 % urban). This of course not an earth shaking insight, but it is certainly not an irrelevant point for further analysis. Here I am using data from the United States Census Bureau <a href="https://github.com/sdavidsson90/bike_crash/blob/main/code/tidycensus.R">aquired via tidycensus</a> . Here’s a map of the population size by county:</p>
 <pre class="r"><code># Read in population data
 nc_pop &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/ncpop_09_19.rds&quot;) %&gt;% st_as_sf()
 
@@ -321,9 +321,8 @@ cor.test(x = nc_pop$est_2015, y =  nc_pop$n_accidents, method = &quot;pearson&qu
 ##       cor 
 ## 0.9520451</code></pre>
 </div>
-</div>
-<div id="when-do-accidents-ocurr" class="section level3">
-<h3><em>When</em> do accidents ocurr?</h3>
+<div id="when-do-accidents-ocurr" class="section level4">
+<h4><em>When</em> do accidents ocurr?</h4>
 <pre class="r"><code># It&#39;s better to drop the geometry before making for summarising operations. This speeds up the process significantly!
 bike_crash &lt;- st_drop_geometry(bike_crash)
 
@@ -360,13 +359,14 @@ cowplot::plot_grid(
 <li>Finally we see that less accidents take place during the weekends. I will abstain from speculating why.</li>
 </ul>
 </div>
-<div id="concluding-remarks" class="section level1">
-<h1>Concluding remarks:</h1>
+</div>
+<div id="concluding-remarks" class="section level3">
+<h3>Concluding remarks:</h3>
 <ul>
-<li><p>I have introduced the dataset I will be working with in my first few blogposts.</p></li>
-<li><p>The dataset contains detailed observations of more than 12’000 bike crashes in North Carolina in the period 2007 - 2019.</p></li>
-<li><p>The bike crashes are described in 52 distinct variables whereof many are quite text heavy. Further shrinkage could be done, but we</p></li>
-<li><p>The dataset is highly qualitative in nature and is probably best fit for classification-type models and experimenting geographic analysis tools.</p></li>
+<li>I have introduced the dataset I will be working with in my first few blogposts.</li>
+<li>The dataset contains detailed observations of more than 12000 bike crashes in North Carolina in the period 2007 - 2019.</li>
+<li>The bike crashes are described in 52 distinct variables whereof many are quite text heavy. Only few variables have actual numeric meaning.</li>
+<li>The dataset is therefore highly qualitative in nature.</li>
 </ul>
 <p>Stay tuned!</p>
 </div>

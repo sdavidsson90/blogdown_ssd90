@@ -1,0 +1,137 @@
+---
+title: Mapping bike crashes with GIS-tools using the R-command line
+author: Sighvatur S. Davidsson
+date: '2022-02-07'
+---
+```{r document, echo= FALSE}
+# Supress warnings
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+# Makes sure error messages get printed in english
+Sys.setenv(lang = "en_US")
+
+options(scipen = 999)
+```
+ 
+This is part 2 of 4 total in a series of working with bike crash data. In the previous post I introduced the *brike crash*-dataset and concluded that it has a very qualitative nature. I also did some quick data visualisation of the crash locations. 
+
+1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
+2. Mapping bike crashes with GIS-tools using the R-command line
+3. Identifying environmental factors that affect the number of crashes
+4. How can these insights make an impact? 
+
+In this post we will be focusing on mapping the cases with GIS (Geographic Information Systems) tools using the R command line. Having worked with GIS-technology in ArcGIS and Q-GIS before, I am fascinated by how much is possible in R. In my opinion the SF-package is the best thing that has happened for R since dplyr. It relies on a PostGIS standard to enable cross platform work and feels very much in line with the tidyverse-dialect we know from the essential modern R functions. 
+
+
+```{r Workspace, echo = TRUE}
+# Load packages
+pacman::p_load(tidyverse, sf, tmap)
+
+# Read in datasets
+bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds")
+
+# Read in North Carolina counties geometry
+nc_counties <- read_rds("~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds")
+```
+
+##### What are we mapping? 
+
+```{r}
+bike_crash %>% 
+  count(crash_sevr)
+
+bike_crash %>% 
+  count(ambulance_r)
+
+```
+
+At first we will be mapping all crashes that have taken place in the period 2007 - 2019
+
+
+We are interested in crash locations
+- all crashes
+- in the period 2007 - 2019
+
+
+##### First map of crash locations
+
+```{r}
+tmap_mode("view") 
+
+# Initial map of crash locations
+bike_crash %>%
+  tm_shape() + 
+  tm_dots(alpha = 0.1) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(frame = FALSE,
+            main.title = "Crashes in North Carolina 2007-2019", 
+            main.title.position = "center",
+            main.title.fontfamily = "IBM Plex Sans",
+            main.title.size = 1,
+            ) 
+```
+
+
+### Hetmapping with the Two-dimensional Kernel Density Estimator (2D KDE)
+
+Computer graphics rely on two different technologies - vectors and raster data. The previous map 
+
+raster data (can be thought of as a pixel mosaic)
+
+The 2D-KDE utilises the latter, and thus 
+
+
+```{r}
+# We specify the number of quadrats (the level of detail in our raster map)
+n_quadrats <- 1000
+
+# Bestemmelse af optimal bandwidth (gennemsnittet af to én-dimensionelle)
+bandwidth <- mean(c(MASS::bandwidth.nrd(bike_crash$x), MASS::bandwidth.nrd(bike_crash$y)))
+
+# Her køres metoden 
+kde <- MASS::kde2d(bike_crash$x, 
+                   bike_crash$y, 
+                   h = bandwidth, 
+                   n = n_quadrats)
+
+# Og vi konverterer til raster (for at kunne mappe)
+kde <- raster(kde)
+
+# _ _ _
+# MAPPING
+tmap_mode("plot") 
+
+# Vi vil gerne have heatmaps på en hvid baggrund (det er pænere)
+col_palette <- c("#FFFFFF", "#fee391", "#fec44f", "#fe9929", "#ec7014", "#cc4c02", "#8c2d04")
+
+# Vi vil også gerne kunne fremhæve der, hvor de fleste sammenstød sker
+top_counties <- nc_counties %>% filter(county %in% c("Mecklenburg County", "Wake County", "Durham County", "New Hanover County", "Guilford County"))
+
+
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0) + 
+tm_shape(kde) + 
+  tm_raster("layer",  
+            palette = col_palette, 
+            alpha = .7) + 
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0, 
+              lwd = 1.3,
+              id = "county") +
+  tm_layout(main.title = "Områder med den største tæthed af sammenstød", 
+            main.title.position = "center",
+            main.title.size = .9,
+            frame = TRUE, 
+            legend.show = FALSE
+            ) +
+  tm_shape(top_counties) +
+  tm_text("county",
+          just = "left",
+          scale = 0.75,
+          shadow = T,
+          clustering = F) + 
+  tm_credits("Bandwidth = 0.68 (metodespecificeret)", position = c("right", "bottom"), align = "right")
+```
+
+
