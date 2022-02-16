@@ -1,3 +1,7 @@
+# Google Analytics
+googleAnalytics = "UA-219883372-1"
+gtagId = "G-61LNEQWN02" 
+
 
 # Side opsætning
 title = "Sighvatur S. Davidsson"
@@ -8,9 +12,7 @@ profilePicture = "images/profile.jpg"
 keywords = "sighvatur"
 favicon = "favicons/"
 
-# Google Analytics
-googleAnalytics = "UA-219883372-1"
-gtagId = "G-61LNEQWN02" 
+
 
 
 # example ["css/custom.css"]

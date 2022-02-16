@@ -1,3 +1,8 @@
+# Google Analytics
+googleAnalytics = "UA-219883372-1"
+gtagId = "G-61LNEQWN02" 
+
+
 baseURL = "https://sdavidsson.netlify.app/"
 languageCode = "en"
 DefaultContentLanguage = "en"
@@ -9,9 +14,6 @@ enableRobotsTXT = true
 # Enable Disqus
 #disqusShortname = ""
 
-# Google Analytics
-googleAnalytics = "UA-219883372-1"
-gtagId = "G-61LNEQWN02" 
 
 # Syntax highlighting
 pygmentsUseClasses = true   
