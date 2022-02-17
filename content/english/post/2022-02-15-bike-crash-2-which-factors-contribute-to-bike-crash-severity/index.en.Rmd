@@ -1,10 +1,7 @@
 ---
-title: 'Bike Crash 2: Which factors contribute to bike crash severity?'
-author: "Sighvatur Davidsson"
-date: '2022-02-15'
-slug: []
-categories: []
-tags: []
+title: 'Bike Crash 2: The causes of major injuries'
+author: Sighvatur Davidsson
+date: '2022-02-14'
 ---
 
 
@@ -41,22 +38,22 @@ The principles are derived from a set of ethical imperatives:
 - Citizens lives or mobility can never be traded for other societal advantages
 - When citizens lives or mobility are affected preventive measures must be taken
 
-Tingvall & Haworth (1999) describe this as a paradigm shift in traffic planning.
+Tingvall & Haworth [(1999)](https://www.monash.edu/muarc/archive/our-publications/papers/visionzero) describe this as a paradigm shift in traffic planning.
 
-#### Our objective
-Thus the question we are trying to answer is:
-
-## *Can we identify risk factors that increase the severity of accidents?*
+#### Thus the question we are trying to answer is: 
+#### *Can we identify risk factors that increase the severity of accidents?*
 
 Using this knowledge we would be able to allocate ressources to improving the conditions that have the biggest effect on the seriousness of accidents. 
 
+
 ```{r Workspace setup}
 # Load packages
-pacman::p_load(tidyverse,                      # essentials
+pacman::p_load(tidyverse,                      # essential tools
                sf, tmap,                       # mapping tools
                plotly,                         # interactive plotting
                hrbrthemes,                     # cool plotting theme
-               tidymodels, baguette, themis    # modeling tools
+               tidymodels, baguette, themis,   # modeling tools
+               flextable                       # for creating beautiful tables
 )
                
 # Set standard plotting theme
@@ -91,7 +88,7 @@ bike_crash0 <- bike_crash
 
 Here we see the frequency distribution of the variable categories. 
 
-As we saw in part 1: this is very much a qualitative dataset. An obvious choice of machine learning methods is therefore to go with the classification type models. This calls for a recoding of our variable to a dichotomous outcome. 
+As I demonstrated in [part 1](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/) this is very much a qualitative dataset. An obvious choice of machine learning methods is therefore to go with the classification type models. This calls for a recoding of our variable to a dichotomous outcome. 
 
 ```{r}
 # Outcome variable should be binary with "positive" outcome marked as 1.
@@ -152,11 +149,9 @@ bike_crash <- bike_crash %>%
 colnames(bike_crash)
 ```
 
+### Modelling
 
-
-#### Modelling
-
-I will be using testing two different methods against each other; logistic regression and a random forrest with bagging. 
+We are now in place to begin our modelling. I will be using testing two different methods against each other; logistic regression and a random forest with bagging. 
 
 ```{r}
 # I will be modelling using the tidymodels package
@@ -178,7 +173,7 @@ bagged <- bag_tree(min_n = 10) %>%
 custom_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
 ```
 
-We of course have to split the dataset into a train and test set. 
+We of course have to split the dataset into a train and test set:
 
 ```{r}
 # Data split for training model
@@ -193,13 +188,14 @@ bike_folds <- vfold_cv(bike_train, v = 2, prop = 0.75,  strata = crash_sevr)
 
 # Define model test metrics
 bike_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
+
+# Specify the model formula (outcomes + predictors)
+formula <- formula(crash_sevr ~ .)
 ```
 
+Here are is an initial run of these models:
 
 ```{r}
-# Formula
-formula <- formula(crash_sevr ~ .)
-
 # Define recipe
 bike_recipe <- 
   recipe(formula, data = bike_train) %>% 
@@ -222,9 +218,6 @@ ctrl_preds <- control_resamples(save_pred = TRUE)
 bc_logreg_fit <- fit_resamples(bc_logreg_wf, bike_folds, metrics = custom_metrics,  control = ctrl_preds) 
 bc_bagged_fit <- fit_resamples(bc_bagged_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
 
-
-library(flextable)
-
 # And evaluate
 collect_metrics(bc_logreg_fit) %>% 
   select(-.config, -n) %>% 
@@ -239,15 +232,20 @@ collect_metrics(bc_bagged_fit) %>%
   flextable() %>% add_header_lines("Bagged random forest model")
 ```
 
-```{r}
-# We could adjust threshold and get higher sensitivty, but we would be less accurate
+In the initial modelling we get a very high accuracy for our models - indicating that it makes correct predictions more than 90 % of the time. This would be a great result if it weren't for the class imbalance we noticed earlier. This means the dataset is biased towards predicting cases that belong to the major class, and thus doesn't necissarily predict the minor class accurately. This is why we need to look at the sensitivity measure. Around 1 % of the time we get correct predictions of the minor class. That's bad. Especially since that is the class we are most interested in predicting correctly. 
 
-# Because of class imbalance we need to try resampling methods
+We could adjust our model threshold in order to get a higher sensitivity (catch more severe cases), but that would harm our accuracy. 
+
+Because of this we will now try two different algorithms to **resample the dataset**; the rose algorithm; and the downsample-algorithm. These two represent to different ways of resampling. The rose algorithm utilises a k-nearest neighbour algorithm to generate more observations of the minor class in order to balance the outcome class. The downsample algorithm balances the observations by reducing the major class. Therefore they represent two opposite approaches to handling class imbalance.
+
+```{r}
+# For one recipe set we apply the rose algorithm
 set.seed(444)
 bike_recipe_rose <- 
 bike_recipe %>% 
   step_rose(crash_sevr) 
 
+# And for the other we test the downsampling algorithm. 
 set.seed(555)
 bike_recipe_down <- 
 bike_recipe %>% 
@@ -279,7 +277,7 @@ bc_logreg_down_fit <- fit_resamples(bc_logreg_down_wf, bike_folds, metrics = cus
 bc_bagged_down_fit <- fit_resamples(bc_bagged_down_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
 
 
-# And evaluate
+# And evaluate the rose algorithm 
 collect_metrics(bc_logreg_rose_fit) %>%
   select(-.config, -n) %>% 
   mutate(mean = round(mean, 3),
@@ -294,6 +292,8 @@ collect_metrics(bc_bagged_rose_fit) %>%
   flextable() %>% 
   add_header_lines("Bagged random forest model (with rose-resampling)")
 
+
+# And evaluate the downsample algorithm 
 collect_metrics(bc_logreg_down_fit) %>% 
   select(-.config, -n) %>% 
   mutate(mean = round(mean, 3),
@@ -307,20 +307,36 @@ collect_metrics(bc_bagged_down_fit) %>%
          std_err = round(std_err, 3)) %>% 
   flextable() %>% 
   add_header_lines("Bagged random forest model (with downsampling)")
+```
 
-# This one is the winner
+We see that the rose algorithm has had a dramatic effect on the logistic regression model, but seems not to have had a great effect on the bagged RF model, which seems to not be working.
+
+It also looks as if the downsampling algorithm has had a positive effect on both models. In both models get a lower accuracy and ROC-AUC (compared to no resampling) but again our sensitivity has increased by a lot, suggesting this model is better able to confine the relationship with our predictors and the outcome variable. 
+
+#### Model selection
+
+But which model do we choose? Since both tables indicate very similar results, neither model is a clear winner.
+
+Considering there is an element of randomness in both the initial train/test-splitting of the dataset and in applying the resampling algorithms, it is very possible that these minute differences could pushed in either direction if we were to set a different seed.
+
+We want to select the model that is best able to predict true positives (ie. has the highest sensitivity) but  retains an ability to predict true negatives. Otherwise we simply could've resorted to adjusting the threshold value of the first two models.
+
+We also want to consider the accuracy and the ROC-AUC in our model selection. 
+
+```{r}
+# Looks like this one is the winner
 collect_metrics(bc_logreg_rose_fit)
 
-# Conf_mat
+# Confusion matrix
 (tibble(
   pred = collect_predictions(bc_logreg_rose_fit)$.pred_class,
   truth = bike_train$crash_sevr) %>% 
   conf_mat(truth = truth, estimate = pred) %>% autoplot(type = "heatmap") + 
     ggtitle("Confusion matrix for logistic  \n regression model with rose-resampling") +
     theme(panel.grid.major = element_blank() )) %>% 
-  ggplotly() %>% 
-  config(displayModeBar = F)
 ```
+
+
 
 ```{r}
 # EVALUATE MODEL ON TEST DATA
