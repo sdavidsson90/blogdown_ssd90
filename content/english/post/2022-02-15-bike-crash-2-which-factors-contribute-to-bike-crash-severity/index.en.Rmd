@@ -1,6 +1,6 @@
 ---
 title: 'Bike Crash 2: The causes of major injuries'
-author: Sighvatur Davidsson
+author: "Sighvatur Davidsson"
 date: '2022-02-14'
 ---
 
@@ -333,7 +333,7 @@ collect_metrics(bc_logreg_rose_fit)
   truth = bike_train$crash_sevr) %>% 
   conf_mat(truth = truth, estimate = pred) %>% autoplot(type = "heatmap") + 
     ggtitle("Confusion matrix for logistic  \n regression model with rose-resampling") +
-    theme(panel.grid.major = element_blank() )) %>% 
+    theme(panel.grid.major = element_blank() )) 
 ```
 
 

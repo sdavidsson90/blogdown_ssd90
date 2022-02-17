@@ -16,7 +16,7 @@ options(scipen = 999)
 
 ### An outline for this post: 
 
-For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with [an example of some simple EDA](https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d) attached - but no machine learning solutions. 
+For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. 
 
 My first four blog posts will therefore be a presentation of some of the learnings I did in that process. Their subject matters are:
 
@@ -25,7 +25,7 @@ My first four blog posts will therefore be a presentation of some of the learnin
 3. Identifying environmental factors that affect the number of crashes
 4. How can these insights make an impact? 
 
-In this first blog post I will be presenting the dataset. I have already done some [preprocessing](https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R), but here we will be focusing on gaining a general understanding of the dataset.
+In this first blog post I will be presenting the dataset. I have already done some [preprocessing](https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R), but here we will be focusing on gaining a general understanding of the dataset. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with [an example of some simple EDA](https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d) attached - but no machine learning solutions. 
 
 **Short introduction to the dataset:**
 
