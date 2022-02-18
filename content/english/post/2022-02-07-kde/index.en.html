@@ -1,113 +1,33 @@
 ---
 title: "Mapping bike crashes with GIS-tools using the R-command line"
 author: "Sighvatur S. Davidsson"
-date: '2022-02-10'
+date: '2022-02-17'
 ---
 
 <script src="{{< blogdown/postref >}}index.en_files/header-attrs/header-attrs.js"></script>
 
 
-<pre><code>## ― Running a series of automated checks for your blogdown website project...</code></pre>
-<pre><code>## --------------------------------------------------------------------------------</code></pre>
-<pre><code>## ○ A successful check looks like this.</code></pre>
-<pre><code>## ● [TODO] A check that needs your attention looks like this.</code></pre>
-<pre><code>## | Let&#39;s check out your blogdown site!</code></pre>
-<pre><code>## --------------------------------------------------------------------------------</code></pre>
-<pre><code>## ― Checking config/_default/config.toml</code></pre>
-<pre><code>## | Checking &quot;baseURL&quot; setting for Hugo...</code></pre>
-<pre><code>## ○ Found baseURL = &quot;https://sdavidsson.netlify.app/&quot;; nothing to do here!</code></pre>
-<pre><code>## | Checking &quot;ignoreFiles&quot; setting for Hugo...</code></pre>
-<pre><code>## ● [TODO] Set &quot;ignoreFiles&quot; to [&quot;\\.Rmd$&quot;, &quot;\\.Rmarkdown$&quot;, &quot;_cache$&quot;]</code></pre>
-<pre><code>## | Checking setting for Hugo&#39;s Markdown renderer...</code></pre>
-<pre><code>## ○ All set! Found the &quot;unsafe&quot; setting for goldmark.</code></pre>
-<pre><code>## ― Check complete: config/_default/config.toml</code></pre>
-<pre><code>## ― Checking .gitignore</code></pre>
-<pre><code>## | Checking for items to remove...</code></pre>
-<pre><code>## ○ Nothing to see here - found no items to remove.</code></pre>
-<pre><code>## | Checking for items to change...</code></pre>
-<pre><code>## ○ Nothing to see here - found no items to change.</code></pre>
-<pre><code>## | Checking for items you can safely ignore...</code></pre>
-<pre><code>## ● [TODO] You can safely add to .gitignore: .DS_Store, Thumbs.db</code></pre>
-<pre><code>## | Checking for items to ignore if you build the site on Netlify...</code></pre>
-<pre><code>## ● [TODO] When Netlify builds your site, you can safely add to .gitignore: /public/, /resources/</code></pre>
-<pre><code>## | Checking for files required by blogdown but not committed...</code></pre>
-<pre><code>## ○ Great! Did not find such files.</code></pre>
-<pre><code>## ― Check complete: .gitignore</code></pre>
-<pre><code>## ― Checking Hugo</code></pre>
-<pre><code>## | Checking Hugo version...</code></pre>
-<pre><code>## ○ Found 4 versions of Hugo. You are using Hugo 0.85.0.</code></pre>
-<pre><code>## | Checking .Rprofile for Hugo version used by blogdown...</code></pre>
-<pre><code>## ○ blogdown is using Hugo 0.85.0 to build site locally.</code></pre>
-<pre><code>## ― Check complete: Hugo</code></pre>
-<pre><code>## ― Checking netlify.toml...</code></pre>
-<pre><code>## ○ Found HUGO_VERSION = 0.85.0 in [build] context of netlify.toml.</code></pre>
-<pre><code>## | Checking that remote &amp; local Hugo versions match...</code></pre>
-<pre><code>## ○ It&#39;s a match! Local and remote Hugo versions are identical (0.85.0).</code></pre>
-<pre><code>## | Checking that Netlify &amp; local Hugo publish directories match...</code></pre>
-<pre><code>## ○ Good to go - blogdown and Netlify are using the same publish directory: public</code></pre>
-<pre><code>## ― Check complete: netlify.toml</code></pre>
-<pre><code>## ― Checking content files</code></pre>
-<pre><code>## | Checking for validity of YAML metadata in posts...</code></pre>
-<pre><code>## ○ All YAML metadata appears to be syntactically valid.</code></pre>
-<pre><code>## | Checking for previewed content that will not be published...</code></pre>
-<pre><code>## ○ Found 0 files with future publish dates.</code></pre>
-<pre><code>## ○ Found 0 files marked as drafts.</code></pre>
-<pre><code>## | Checking your R Markdown content...</code></pre>
-<pre><code>## ○ All R Markdown files have been knitted.</code></pre>
-<pre><code>## ● [TODO] Found 1 R Markdown file to update by re-rendering:
-## 
-##   content/english/post/2022-02-07-kde/index.en.Rmd
-## 
-##   To update a file, re-knit or use blogdown::build_site(build_rmd = &#39;timestamp&#39;)</code></pre>
-<pre><code>## | Checking for .html/.md files to clean up...</code></pre>
-<pre><code>## ○ Found 0 duplicate .html output files.</code></pre>
-<pre><code>## ○ Found 0 incompatible .html files to clean up.</code></pre>
-<pre><code>## | Checking for the unnecessary &#39;content/&#39; directory in theme...</code></pre>
-<pre><code>## ○ Great! Your theme does not contain the content/ directory.</code></pre>
-<pre><code>## ― Check complete: Content</code></pre>
-<p>sss</p>
-<div id="this-is-part-2-of-4-total-in-a-series-of-working-with-bike-crash-data.-in-the-previous-post-i-introduced-the-brike-crash-dataset-and-concluded-that-it-has-a-very-qualitative-nature.-i-also-did-some-quick-data-visualisation-of-the-crash-locations." class="section level1">
-<h1>This is part 2 of 4 total in a series of working with bike crash data. In the previous post I introduced the <em>brike crash</em>-dataset and concluded that it has a very qualitative nature. I also did some quick data visualisation of the crash locations.</h1>
+<div id="outline-for-this-post" class="section level3">
+<h3>Outline for this post</h3>
+</div>
+<div id="this-is-the-first-post-in-a-3-part-series-of-working-with-the-brike-crash-dataset.-in-the-first-post-i-introduced-the-dataset-and-concluded-that-it-is-rather-qualitative-in-nature.-in-the-second-post-i-did-some-modelling-and-tried-to" class="section level1">
+<h1>This is the first post in a 3-part series of working with the <em>brike crash</em>-dataset. In the first post I introduced the dataset and concluded that it is rather qualitative in nature. In the second post I did some modelling, and tried to</h1>
+<p>has a very qualitative nature. I also did some quick data visualisation of the crash locations.</p>
 <ol style="list-style-type: decimal">
 <li><a href="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/">Introducing the bike crash-dataset</a></li>
 <li>Mapping bike crashes with GIS-tools using the R-command line</li>
 <li>Identifying environmental factors that affect the number of crashes</li>
 <li>How can these insights make an impact?</li>
 </ol>
-<p>In this post we will be focusing on mapping the cases with GIS (Geographic Information Systems) tools using the R command line. Having worked with GIS-technology in ArcGIS and Q-GIS before, I am fascinated by how much is possible in R. In my opinion the SF-package is the best thing that has happened for R since dplyr. It relies on a PostGIS standard to enable cross platform work and feels very much in line with the tidyverse-dialect we know from the essential modern R functions.</p>
+<p>In this post we will be focusing on mapping the cases with GIS-tools using the R command line. Having worked with GIS-technology in ArcGIS and Q-GIS before, I am fascinated by how much is possible in R. In my opinion the SF-package is the best thing that has happened for R since dplyr. It relies on a PostGIS standard to enable cross platform work and feels very much in line with the tidyverse-dialect we know from the essential modern R functions.</p>
 <pre class="r"><code># Load packages
-pacman::p_load(tidyverse, sf, tmap)
+pacman::p_load(tidyverse, sf, tmap, plotly)
 
 # Read in datasets
 bike_crash &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/bike_crash.rds&quot;)
 
 # Read in North Carolina counties geometry
 nc_counties &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds&quot;)</code></pre>
-<div id="what-are-we-mapping" class="section level5">
-<h5>What are we mapping?</h5>
-<pre class="r"><code>bike_crash %&gt;% 
-  count(crash_sevr)</code></pre>
-<pre><code>## # A tibble: 6 × 2
-##   crash_sevr                   n
-##   &lt;fct&gt;                    &lt;int&gt;
-## 1 No Injury                 1396
-## 2 Possible Injury           4716
-## 3 Suspected Minor Injury    5057
-## 4 Suspected Serious Injury   650
-## 5 Killed                     278
-## 6 &lt;NA&gt;                        76</code></pre>
-<pre class="r"><code>bike_crash %&gt;% 
-  count(ambulance_r)</code></pre>
-<pre><code>## # A tibble: 2 × 2
-##   ambulance_r     n
-##   &lt;fct&gt;       &lt;int&gt;
-## 1 Yes          8275
-## 2 No           3898</code></pre>
-<p>At first we will be mapping all crashes that have taken place in the period 2007 - 2019</p>
-<p>We are interested in crash locations
-- all crashes
-- in the period 2007 - 2019</p>
-</div>
 <div id="first-map-of-crash-locations" class="section level5">
 <h5>First map of crash locations</h5>
 <pre class="r"><code>tmap_mode(&quot;plot&quot;) 
@@ -127,7 +47,7 @@ bike_crash %&gt;%
             main.title.fontfamily = &quot;IBM Plex Sans&quot;,
             main.title.size = 1,
             ) </code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
 </div>
 <div id="hetmapping-with-the-two-dimensional-kernel-density-estimator-2d-kde" class="section level3">
 <h3>Hetmapping with the Two-dimensional Kernel Density Estimator (2D KDE)</h3>
@@ -183,6 +103,6 @@ tm_shape(nc_counties) +
           shadow = T,
           clustering = F) + 
   tm_credits(&quot;Bandwidth = 0.68 (metodespecificeret)&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;)</code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 </div>
 </div>

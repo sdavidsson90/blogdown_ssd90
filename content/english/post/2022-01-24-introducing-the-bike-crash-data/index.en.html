@@ -1,23 +1,23 @@
 ---
 title: 'Bike Crash 1: Introducing the bike crash-dataset'
 author: "Sighvatur S. Davidsson"
-date: '2022-02-15'
+date: '2022-02-04'
 ---
 
 <script src="{{< blogdown/postref >}}index.en_files/header-attrs/header-attrs.js"></script>
 
 
-<div id="an-outline-for-this-post" class="section level3">
-<h3>An outline for this post:</h3>
-<p>For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with <a href="https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d">an example of some simple EDA</a> attached - but no machine learning solutions.</p>
+<div id="outline-for-this-post" class="section level3">
+<h3>Outline for this post:</h3>
+<p>For my first few blog posts, I will be working with a dataset describing bike crashes in North Carolina. This very same dataset was also the one that I used for my final thesis studying Data Analytics at Dania Academy.</p>
 <p>My first four blog posts will therefore be a presentation of some of the learnings I did in that process. Their subject matters are:</p>
 <ol style="list-style-type: decimal">
 <li>Introducing the bike crash-dataset</li>
-<li>Mapping bike crashes with GIS-tools using the command line</li>
-<li>Identifying environmental factors that affect the number of crashes</li>
+<li>The causes of major injuries</li>
+<li>Mapping crash locations using the command line</li>
 <li>How can these insights make an impact?</li>
 </ol>
-<p>In this first blog post I will be presenting the dataset. I have already done some <a href="https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R">preprocessing</a>, but here we will be focusing on gaining a general understanding of the dataset.</p>
+<p>In this first blog post I will be presenting the dataset. I have already done some <a href="https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R">preprocessing</a>, but here we will be focusing on gaining a general understanding of the dataset. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with <a href="https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d">an example of some simple EDA</a> attached - but no machine learning solutions.</p>
 <p><strong>Short introduction to the dataset:</strong></p>
 <p>This dataset contains information on crashes between cyclists and motorised vehicles (cars, motorcycles, etc.) taking place in North Carolina in the period 2007 - 2019. The dataset has been made available by the local authorities: North Carolina Division of Motor Vehicles. The information has been sourced from police reports, and manually been put in a tabular form by the University of North Carolina. Overall quality of registrations is therefore assumed to be high. There is however a problem with documentation. We don’t have explanations for the variables’ meaning but have to rely on their names (which are often abbrevations) and the content of the registrations.</p>
 <p>The original dataset can be accesed <a href="https://www.pedbikeinfo.org/pbcat_nc/_bicycle.cfm">here</a>, and officially provided information about the dataset <a href="https://www.pedbikeinfo.org/pbcat_nc/_bicycle-about.cfm">here</a>.</p>

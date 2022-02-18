@@ -1,7 +1,7 @@
 ---
 title: 'Bike Crash 2: The causes of major injuries'
 author: "Sighvatur Davidsson"
-date: '2022-02-14'
+date: '2022-02-17'
 ---
 
 
@@ -21,11 +21,11 @@ library(blogdown)
 ```
 
 ### Outline for this post
-In this post I will be using machine learning methods to extrude insights that can be gained from the **bike crash**-dataset, that I introduced in my [previous post](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/). In the previous post we looked at the information that has been made available in the dataset, and we concluded that we are working with a dataset that is highly qualitative in nature, hence we must choose appropriate machine learning methods. This is the second part in the series. The other posts are:
+In this post I will be using machine learning methods to extrude insights that can be gained from the *bike crash*-dataset, that I introduced in my [previous post](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/). In the previous post we looked at the information that has been made available in the dataset, and we concluded that we are working with a dataset that is highly qualitative in nature, hence we must choose appropriate machine learning methods. This is the second part in the series:
 
-1. Introducing the bike crash-dataset
-2. Mapping bike crashes with GIS-tools using the command line
-3. Identifying environmental factors that affect the number of crashes
+1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
+2. The causes of major injuries
+3. Mapping crash locations using the command line
 4. How can these insights make an impact? 
 
 ### The business problem
@@ -319,9 +319,9 @@ But which model do we choose? Since both tables indicate very similar results, n
 
 Considering there is an element of randomness in both the initial train/test-splitting of the dataset and in applying the resampling algorithms, it is very possible that these minute differences could pushed in either direction if we were to set a different seed.
 
-We want to select the model that is best able to predict true positives (ie. has the highest sensitivity) but  retains an ability to predict true negatives. Otherwise we simply could've resorted to adjusting the threshold value of the first two models.
+We want to select the model that is best able to predict true positives (ie. has the highest sensitivity) but also  retains an ability to correctly predict true negatives (high specificity). The ROC-AUC is a measure that looks at both the specificity and sensitivity combined and is therefore useful for comparing models. In this case however I would argue that it would be misleading to select the model with the highest AUC. This is because of the class imbalance problem in our outcome variable. Without resampling the ROC-AUC is (somewhat) high for both the logistic regression model and the random forest model. 
 
-We also want to consider the accuracy and the ROC-AUC in our model selection. 
+For our business problem it is however critical that our model is able to capture the effects leading to major injuries. I therefore suggest we go with the logistic regression model with the rose resampling.
 
 ```{r}
 # Looks like this one is the winner
@@ -401,22 +401,22 @@ bike_last_fit %>%
     xmax = estimate  + std.error )) +
   labs(x = "Odds Ratio + Standard Error", y = "Predictor Variable") 
 ) %>% 
-  ggplotly(tooltip = "estimate", autosize = F, width = 666, height = 750) %>% 
+  ggplotly(tooltip = "estimate", autosize = F, height = 750) %>% 
   config(displayModeBar = F)
 
 
-#last_fit_table <- 
-bike_last_fit %>% 
-  pull(.workflow) %>% 
-  pluck(1) %>% 
-  tidy(exponentiate = TRUE) %>% 
-  filter(term != "(Intercept)",
-         p.value < 0.05) %>% 
-  arrange(term) %>% 
-  mutate(p.value = round(p.value, 3),
-         statistic = round(statistic, 3),
-         std.error = round(std.error, 3),
-         estimate = round(estimate, 3)) %>% 
-  print(n = 100) 
+# #last_fit_table <-
+# bike_last_fit %>%
+#   pull(.workflow) %>%
+#   pluck(1) %>%
+#   tidy(exponentiate = TRUE) %>%
+#   filter(term != "(Intercept)",
+#          p.value < 0.05) %>%
+#   arrange(term) %>%
+#   mutate(p.value = round(p.value, 3),
+#          statistic = round(statistic, 3),
+#          std.error = round(std.error, 3),
+#          estimate = round(estimate, 3)) %>%
+#   print(n = 100)
 
 ```
