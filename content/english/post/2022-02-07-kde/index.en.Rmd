@@ -195,7 +195,7 @@ tm_shape(nc_counties) +
   tm_credits("Bandwidth = 1,2 (metodespecificeret)", position = c("right", "bottom"), align = "right")
 ```
 
-Bandwidth is too high. We can manually adjust that
+Bandwidth is too high. We can manually adjust that.
 
 ```{r}
 kde <- MASS::kde2d(bike_crash_severe$x, 
