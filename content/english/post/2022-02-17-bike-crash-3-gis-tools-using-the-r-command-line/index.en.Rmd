@@ -1,6 +1,6 @@
 ---
 title: 'Bike Crash 3: GIS-tools using the R-command line'
-author: Sighvatur Davidsson
+author: "Sighvatur Davidsson"
 date: '2022-02-17'
 ---
 
