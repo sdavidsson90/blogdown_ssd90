@@ -1,0 +1,230 @@
+---
+title: 'Bike Crash 3: GIS-tools using the R-command line'
+author: Sighvatur Davidsson
+date: '2022-02-17'
+---
+
+
+```{r document, echo= FALSE}
+# Supress warnings
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+# Makes sure error messages get printed in english
+Sys.setenv(lang = "en_US")
+
+options(scipen = 999,
+        blogdown.knit.on_save = FALSE # Mapping can take some time. Make sure we're not knitting '.Rmd' to '.html' everytime we click save
+        )
+
+# blogdown::check_site() # Note to self: Try running this if anything goes wrong.
+```
+
+
+### Outline for this post 
+This is the first post in a 3-part series of working with the *brike crash*-dataset. 
+
+1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
+2. Mapping bike crashes with GIS-tools using the R-command line
+3. Identifying environmental factors that affect the number of crashes
+4. How can these insights make an impact? 
+
+In the first post I introduced the dataset and concluded that it is rather qualitative in nature. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity. 
+
+In this post we will be focusing on mapping the crash locations and demonstrating how different mapping methods communicate different ... 
+
+#### The qustion we are dealing with is: ... 
+
+```{r Workspace, echo = TRUE}
+# Load packages
+pacman::p_load(tidyverse, sf, tmap, plotly, raster)
+
+# Read in datasets
+bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds") %>% 
+  st_as_sf(coords = c(x = "longitude", y = "latitude"), crs = "NAD83") 
+
+# Read in North Carolina counties geometry
+nc_counties <- read_rds("~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds")
+```
+
+#### A first map of crash locations
+
+Initially we are only interested in mapping the geographical distributions of crashes - ie. the locations of crashes. 
+
+First of all we know that 72 % of the registered crashes take place in urban areas.
+
+```{r}
+bike_crash %>% 
+  st_drop_geometry() %>% 
+  count(rural_urban) %>% 
+  mutate(pct = n/(sum(n))*100) 
+```
+
+Further we know that a corresponding 72 % of the crashes take place in areas with more than 70 % physical development. 
+
+```{r}
+bike_crash %>% 
+  st_drop_geometry() %>% 
+  count(locality) %>% 
+  mutate(pct = n/(sum(n))*100)
+```
+
+Also there seems to be a descrepancy between these two variables. This is likely because the registrations have been aggregated from different overlaying geometries. 
+
+```{r}
+bike_crash %>% 
+  st_drop_geometry() %>% 
+  count(locality, rural_urban) 
+```
+
+Now let's create a map of crash locations. 
+
+```{r}
+tmap_mode("plot") 
+
+# bike_crash <- st_as_sf(bike_crash, coords = c(x = "longitude", y = "latitude"), crs = "NAD83") 
+
+# Initial map of crash locations
+bike_crash %>%
+  tm_shape() + 
+  tm_dots(alpha = 0.1) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(frame = FALSE,
+            #main.title = "Bike Crashes in North Carolina 2007-2019", 
+            main.title.position = "center",
+            main.title.fontfamily = "IBM Plex Sans",
+            main.title.size = 1,
+            ) 
+```
+
+This is a simple and very useful map. We see the geographic distributions of crashes, and we are confirmed that a majority of crashes seem to take place in the same few clusters. This map does however have limitations. The crash locations are displayed by somewhat transparent black dots. The transparency helps us draw out the main distribution trends, but can also downplay the dots that appear outside of the clusters. Again this map is useful - but I will deomstrate a more methodical approach.
+
+#### Heatmapping with 2D-KDE
+One of the most common methodical GIS-visualisations is heatmapping. This is often achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let's just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of *binnings*) - the difference being that KDE *smooths* out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by differences between the observations.
+
+Another interesting point to notice is that the *binnings* are represented by squares that are placed on the map. In general it can be said that computer graphics rely on either *vectors* or *rasters*. The former is essentially a technique that generates lines in between predefined points and is thus more scalable (or zoomable if you want). The latter is a pixel mosaic with coloured squares and is thus computationally more efficient.
+
+```{r}
+# We specify the number of quadrats (the level of detail in our raster map)
+n_quadrats <- 1000
+
+# Determining the optimal bandwidth (the mean of two one dimensional algorithms)
+bandwidth <- mean(c(MASS::bandwidth.nrd(bike_crash$x), MASS::bandwidth.nrd(bike_crash$y)))
+
+# We run the 2d-KDE algorithm
+kde <- MASS::kde2d(bike_crash$x, 
+                   bike_crash$y, 
+                   h = bandwidth, 
+                   n = n_quadrats)
+
+# Which we convert to rasters 
+kde <- raster::raster(kde)
+
+# _ _ _
+# MAPPING
+tmap_mode("plot") 
+
+# We're gonna set a custom colour palette
+col_palette <- c("#FFFFFF", "#fee391", "#fec44f", "#fe9929", "#ec7014", "#cc4c02", "#8c2d04")
+
+# These are areas we want to point out
+top_counties <- nc_counties %>% filter(county %in% c("Mecklenburg County", "Wake County", "Durham County", "New Hanover County", "Guilford County"))
+
+# And we create our initial map
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0) + 
+tm_shape(kde) + 
+  tm_raster("layer",  
+            palette = col_palette, 
+            alpha = .7) + 
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0, 
+              lwd = 1.3,
+              id = "county") +
+  tm_layout(main.title = "Areas with highest densities of bike crash occurances", 
+            main.title.position = "center",
+            main.title.size = .9,
+            frame = TRUE, 
+            legend.show = FALSE
+            ) +
+  tm_shape(top_counties) +
+  tm_text("county",
+          just = "left",
+          scale = 0.75,
+          shadow = T,
+          clustering = F) + 
+  tm_credits("Bandwidth = 0.68", position = c("right", "bottom"), align = "right")
+```
+
+We will do the same for the crashes with the most crashes only
+
+```{r}
+# We filter out the most severe accidents only
+bike_crash_severe <- bike_crash %>% filter(crash_sevr %in% c("Killed", "Suspected Serious Injury"))
+
+# And do the very same procedure 
+
+#We specify our bandwidth
+bandwidth <- mean(c(MASS::bandwidth.nrd(bike_crash_severe$x), MASS::bandwidth.nrd(bike_crash_severe$y)))
+
+# We run the KDE
+kde <- MASS::kde2d(bike_crash_severe$x, 
+                   bike_crash_severe$y, 
+                   h = bandwidth, 
+                   n = n_quadrats)
+
+# And convert to raster
+kde <- raster(kde)
+
+# Her plottes de alvorligste ulykker
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0) + 
+tm_shape(kde) + 
+  tm_raster("layer",  
+            palette = col_palette, 
+            alpha = .7) + 
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0, 
+              lwd = 1.3,
+              id = "county") +
+  tm_layout(main.title = "", 
+            main.title.position = "center",
+            main.title.size = .9,
+            frame = TRUE, 
+            legend.show = FALSE
+            ) + 
+  tm_credits("Bandwidth = 1,2 (metodespecificeret)", position = c("right", "bottom"), align = "right")
+```
+
+Bandwidth is too high. We can manually adjust that.
+
+```{r}
+kde <- MASS::kde2d(bike_crash_severe$x, 
+                   bike_crash_severe$y, 
+                   h = bandwidth/3,  # halveret bandwidth
+                   n = n_quadrats)
+
+kde <- raster(kde)
+
+top_counties <- nc_counties %>% filter(county %in% c("Mecklenburg County", "Wake County", "New Hanover County"))
+
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0) + 
+tm_shape(kde) + 
+  tm_raster("layer",  
+            palette = col_palette, 
+            alpha = .7) + 
+tm_shape(nc_counties) + 
+  tm_polygons(alpha = 0, 
+              lwd = 1.3,
+              id = "county") +
+  tm_layout(frame = TRUE, 
+            legend.show = FALSE) +
+    tm_shape(top_counties) + 
+  tm_credits("Bandwidth = 0.4 (manuel justering)", position = c("right", "bottom"), align = "right") +
+  tm_text("county",
+          just = "left",
+          scale = 0.75,
+          shadow = T,
+          clustering = F) 
+```
