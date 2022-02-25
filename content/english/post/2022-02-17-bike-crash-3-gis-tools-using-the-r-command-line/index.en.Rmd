@@ -20,35 +20,39 @@ options(scipen = 999,
 ```
 
 
-### Outline for this post 
-This is the first post in a 3-part series of working with the *brike crash*-dataset. 
+### Outline for this post: 
+This is the third post in a 4-part series of working with the *brike crash*-dataset. 
 
 1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
-2. Mapping bike crashes with GIS-tools using the R-command line
-3. Identifying environmental factors that affect the number of crashes
+2. [The causes of major injuries](https://sdavidsson.netlify.app/post/2022-02-15-bike-crash-2-which-factors-contribute-to-bike-crash-severity/)
+3. GIS-tools using the R-command line
 4. How can these insights make an impact? 
 
-In the first post I introduced the dataset and concluded that it is rather qualitative in nature. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity. 
+Upon until now our key findings have been:
 
-In this post we will be focusing on mapping the crash locations and demonstrating how different mapping methods communicate different ... 
+1. In the first post I introduced the dataset and concluded that it is rather qualitative in nature. 
+2. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity. 
 
-#### The qustion we are dealing with is: ... 
+In this post we will be mapping crash locations. The assumption is that bike crashes are spatially clustered phenomena - meaning some areas are more prone to crashes than others. The driving factors behind effect can be more or less tangible or direct - but nevertheless observable. 
+
+This analysis can then be presented to decision makers in order for them to make a more informed decision on where safety improvement spending should be focused. 
+
+#### Thus qustion we are trying to answer is:
+#### Which locations are most prone to bike crashes?
+
+Now let's get to it! 
 
 ```{r Workspace, echo = TRUE}
 # Load packages
-pacman::p_load(tidyverse, sf, tmap, plotly, raster)
+pacman::p_load(tidyverse, sf, tmap, plotly, raster, flextable)
 
 # Read in datasets
 bike_crash <- read_rds("~/R/Projects/bike_crash/processed_data/bike_crash.rds") %>% 
   st_as_sf(coords = c(x = "longitude", y = "latitude"), crs = "NAD83") 
 
 # Read in North Carolina counties geometry
-nc_counties <- read_rds("~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds")
+nc_counties <- read_rds("~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds") %>%  st_transform(crs = "NAD83")
 ```
-
-#### A first map of crash locations
-
-Initially we are only interested in mapping the geographical distributions of crashes - ie. the locations of crashes. 
 
 First of all we know that 72 % of the registered crashes take place in urban areas.
 
@@ -76,45 +80,72 @@ bike_crash %>%
   count(locality, rural_urban) 
 ```
 
+*Now we want to know which urban areas the crashes are taking place in? We'll do some mapping*
+
+#### A first map of crash locations
+
+Initially we are only interested in mapping the geographical distributions of crashes - ie. the locations of crashes. 
+
 Now let's create a map of crash locations. 
 
 ```{r}
-tmap_mode("plot") 
-
-# bike_crash <- st_as_sf(bike_crash, coords = c(x = "longitude", y = "latitude"), crs = "NAD83") 
-
 # Initial map of crash locations
 bike_crash %>%
-  tm_shape() + 
+  tm_shape(bbox = st_bbox(bike_crash)) + 
   tm_dots(alpha = 0.1) + 
   tm_shape(nc_counties) + 
   tm_borders(alpha = 0.4, lwd = 1.3) + 
   tm_layout(frame = FALSE,
-            #main.title = "Bike Crashes in North Carolina 2007-2019", 
+            main.title = "Map 1: Bike Crashes in North Carolina 2007-2019", 
             main.title.position = "center",
             main.title.fontfamily = "IBM Plex Sans",
             main.title.size = 1,
             ) 
 ```
 
-This is a simple and very useful map. We see the geographic distributions of crashes, and we are confirmed that a majority of crashes seem to take place in the same few clusters. This map does however have limitations. The crash locations are displayed by somewhat transparent black dots. The transparency helps us draw out the main distribution trends, but can also downplay the dots that appear outside of the clusters. Again this map is useful - but I will deomstrate a more methodical approach.
+This is a simple and very useful map. We see the geographic distributions of crashes, and we are confirmed that *a majority of crashes seem to take place in the same few clusters*. 
+
+```{r}
+# We filter out the most severe accidents only
+bike_crash_severe <- bike_crash %>% filter(crash_sevr %in% c("Killed", "Suspected Serious Injury"))
+
+# Initial map of crash locations
+bike_crash_severe %>%
+  tm_shape(bbox = st_bbox(bike_crash)) + 
+  tm_dots(alpha = 0.1) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(frame = FALSE,
+            main.title = "Map 2: Bike Crashes in North Carolina 2007-2019 with severe injuries", 
+            main.title.position = "center",
+            main.title.fontfamily = "IBM Plex Sans",
+            main.title.size = 1,
+            ) 
+```
+
+Here we have filtered out crashes with the most severe injuries and terefore go from having 12173 observations to 928. There seems to be a spatial relationship between the two crash types - suggesting a certain portion of accidents are expected to be severe. We would have to do a spatio-statistical test to prove this relationship, but I will save that for later. If there is a hard to measure spatial effect at play (which is very likely), this insight would tell us how strongly we could expect this. 
+
+Again these maps are simple and useful. They do however have their limitations. The crash locations are displayed by somewhat transparent black dots. The transparency helps us draw out the main distribution trends, but can also downplay the dots that appear outside of the clusters. I will now deomstrate a more methodical approach.
 
 #### Heatmapping with 2D-KDE
-One of the most common methodical GIS-visualisations is heatmapping. This is often achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let's just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of *binnings*) - the difference being that KDE *smooths* out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by differences between the observations.
+One of the most common methodical GIS-visualisations is heatmapping. This can be achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let's just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of *binnings*) - the difference being that KDE *smooths* out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by differences between the observations. Thus it can be said that this entails smoothing of observed coordinates.
 
-Another interesting point to notice is that the *binnings* are represented by squares that are placed on the map. In general it can be said that computer graphics rely on either *vectors* or *rasters*. The former is essentially a technique that generates lines in between predefined points and is thus more scalable (or zoomable if you want). The latter is a pixel mosaic with coloured squares and is thus computationally more efficient.
+Another interesting point to notice is that the *binnings* are represented by squares that are placed on the map. Generally computer graphics rely on two distinct types of technologies *vectors* and *rasters*. The former is essentially a technique that generates lines in between predefined points and is thus more scaleable (or zoom-able if you want). The latter is a pixel mosaic consisting of coloured squares of a predfined size - which is thus computationally more efficeient. 
 
 ```{r}
 # We specify the number of quadrats (the level of detail in our raster map)
 n_quadrats <- 1000
 
 # Determining the optimal bandwidth (the mean of two one dimensional algorithms)
-bandwidth <- mean(c(MASS::bandwidth.nrd(bike_crash$x), MASS::bandwidth.nrd(bike_crash$y)))
+bandwidth1 <- mean(c(
+                    MASS::bandwidth.nrd(bike_crash$x), 
+                    MASS::bandwidth.nrd(bike_crash$y)
+                    ))
 
 # We run the 2d-KDE algorithm
 kde <- MASS::kde2d(bike_crash$x, 
                    bike_crash$y, 
-                   h = bandwidth, 
+                   h = bandwidth1, 
                    n = n_quadrats)
 
 # Which we convert to rasters 
@@ -124,14 +155,14 @@ kde <- raster::raster(kde)
 # MAPPING
 tmap_mode("plot") 
 
-# We're gonna set a custom colour palette
+# We set a custom colour palette
 col_palette <- c("#FFFFFF", "#fee391", "#fec44f", "#fe9929", "#ec7014", "#cc4c02", "#8c2d04")
 
 # These are areas we want to point out
-top_counties <- nc_counties %>% filter(county %in% c("Mecklenburg County", "Wake County", "Durham County", "New Hanover County", "Guilford County"))
+top_counties <- nc_counties %>% filter(county %in% c("Mecklenburg County", "Wake County", "New Hanover County"))
 
 # And we create our initial map
-tm_shape(nc_counties) + 
+tm_shape(nc_counties, bbox = st_bbox(bike_crash)) + 
   tm_polygons(alpha = 0) + 
 tm_shape(kde) + 
   tm_raster("layer",  
@@ -141,10 +172,10 @@ tm_shape(nc_counties) +
   tm_polygons(alpha = 0, 
               lwd = 1.3,
               id = "county") +
-  tm_layout(main.title = "Areas with highest densities of bike crash occurances", 
+  tm_layout(main.title = "Map 3: Heatmap of bike crash occurances", 
             main.title.position = "center",
             main.title.size = .9,
-            frame = TRUE, 
+            frame = FALSE, 
             legend.show = FALSE
             ) +
   tm_shape(top_counties) +
@@ -156,28 +187,25 @@ tm_shape(nc_counties) +
   tm_credits("Bandwidth = 0.68", position = c("right", "bottom"), align = "right")
 ```
 
-We will do the same for the crashes with the most crashes only
+We will do the same for the crashes with the most severe crashes only. These were the ones we modeled in part two. 
 
 ```{r}
-# We filter out the most severe accidents only
-bike_crash_severe <- bike_crash %>% filter(crash_sevr %in% c("Killed", "Suspected Serious Injury"))
-
-# And do the very same procedure 
-
 #We specify our bandwidth
-bandwidth <- mean(c(MASS::bandwidth.nrd(bike_crash_severe$x), MASS::bandwidth.nrd(bike_crash_severe$y)))
+bandwidth2 <- mean(c(
+  MASS::bandwidth.nrd(bike_crash_severe$x), 
+  MASS::bandwidth.nrd(bike_crash_severe$y)))
 
 # We run the KDE
 kde <- MASS::kde2d(bike_crash_severe$x, 
                    bike_crash_severe$y, 
-                   h = bandwidth, 
+                   h = bandwidth2, 
                    n = n_quadrats)
 
 # And convert to raster
 kde <- raster(kde)
 
 # Her plottes de alvorligste ulykker
-tm_shape(nc_counties) + 
+tm_shape(nc_counties, bbox = st_bbox(bike_crash)) + 
   tm_polygons(alpha = 0) + 
 tm_shape(kde) + 
   tm_raster("layer",  
@@ -187,28 +215,32 @@ tm_shape(nc_counties) +
   tm_polygons(alpha = 0, 
               lwd = 1.3,
               id = "county") +
-  tm_layout(main.title = "", 
+  tm_layout(main.title = "Map 4: Heatmap of severe crash locations only", 
             main.title.position = "center",
             main.title.size = .9,
-            frame = TRUE, 
+            frame = FALSE, 
             legend.show = FALSE
             ) + 
-  tm_credits("Bandwidth = 1,2 (metodespecificeret)", position = c("right", "bottom"), align = "right")
+  tm_credits("Bandwidth = 1.2", position = c("right", "bottom"), align = "right")
 ```
 
-Bandwidth is too high. We can manually adjust that.
+When we filtered out the severe injuries only we reduced the number of observations from 12173 to 928, but we mapped them onto the same surface area. As we estimated the appropriate bandwidth methodically, we should note that this value has almost doubled, and we are now smoothing out between significantly fewer observations. Thus the maps aren't directly comparable. 
+
+[Kalinic et al](https://www.researchgate.net/profile/Maja-Kalinic-2/publication/325825793_Kernel_Density_Estimation_KDE_vs_Hot-Spot_Analysis_-_Detecting_Criminal_Hot_Spots_in_the_City_of_San_Francisco/links/5b27de230f7e9b332a31af55/Kernel-Density-Estimation-KDE-vs-Hot-Spot-Analysis-Detecting-Criminal-Hot-Spots-in-the-City-of-San-Francisco.pdf) suggest we experiment with manual adjustments to the bandwidth in order for the map to portray the message we are trying to portray.
+
+How would the map look with the same bandwidth as in the first heatmap?
 
 ```{r}
 kde <- MASS::kde2d(bike_crash_severe$x, 
                    bike_crash_severe$y, 
-                   h = bandwidth/3,  # halveret bandwidth
+                   h = bandwidth1, 
                    n = n_quadrats)
 
 kde <- raster(kde)
 
 top_counties <- nc_counties %>% filter(county %in% c("Mecklenburg County", "Wake County", "New Hanover County"))
 
-tm_shape(nc_counties) + 
+tm_shape(nc_counties, bbox = st_bbox(bike_crash)) + 
   tm_polygons(alpha = 0) + 
 tm_shape(kde) + 
   tm_raster("layer",  
@@ -218,13 +250,191 @@ tm_shape(nc_counties) +
   tm_polygons(alpha = 0, 
               lwd = 1.3,
               id = "county") +
-  tm_layout(frame = TRUE, 
+  tm_layout(main.title = "Map 5: Heatmap of severe crash locations only", 
+            main.title.position = "center",
+            main.title.size = .9,
+            frame = FALSE, 
             legend.show = FALSE) +
     tm_shape(top_counties) + 
-  tm_credits("Bandwidth = 0.4 (manuel justering)", position = c("right", "bottom"), align = "right") +
+  tm_credits("Bandwidth = 0.68", position = c("right", "bottom"), align = "right") +
   tm_text("county",
           just = "left",
           scale = 0.75,
           shadow = T,
           clustering = F) 
 ```
+
+This map displays quite the same message as map 3 - meaning.
+
+Of course Map 3 includes all observations and this one (Map 5) doesn't, but as we are dealing with a shared  of 8 % - this shouldn't be a problem. 
+
+
+So what have we learned from this?
+
+- We have demonstrated how 2D-KDE can be used as a data visualisation method. It is us a useful method that smooths out data points and renders *belts* or *blobs* where the occurance in question is observed.
+
+- We experimented with the bandwidth settings and found that a methodical estimation is useful, but also that manual adjustment is allowed for more effective communication of the desired messsage. Without manipulating of course.
+
+- In the tables below - we see the effect of the smoothing method. Here I have counted the occurances in each county, and further summarized the heatvalues for each county. Note that New Hannover hardly compares with Mecklenburg and Wake on the absolute level, but absolutely does on the heatmap. This is of course a question of looking at absolute and relative numbers, and is likely an indication of New Hannovers size compared to the others.
+
+
+```{r Tables}
+# Whick counties have the most accidents?
+# Hetmap to points-dataframe
+kde_points <- rasterToPoints(kde) %>% as.data.frame()
+
+# Heatmap points to sf
+kde_points <- st_as_sf(kde_points, coords = c(x = "x", y = "y"), crs = "NAD83")
+
+# Spatial join to counties-polygons
+kde_nc <- st_join(nc_counties, kde_points)
+
+# Which counties have been assigned the highest values in the KDE
+kde_table <- kde_nc %>%
+  st_drop_geometry() %>%
+  group_by(county) %>%
+  summarise(heatvalue = mean(layer)) %>%
+  arrange(desc(heatvalue)) %>%
+  ungroup() %>% 
+  mutate(county = str_remove(county, " County"))
+
+kde_table <- 
+kde_table %>% slice(1:5) %>% transmute("#" = 1:5, County = county, "Heatvalue" = heatvalue) 
+
+# Which counties have the highest number of accidents
+bc_table <- 
+bike_crash %>% 
+  st_drop_geometry() %>% 
+  count(county) %>% 
+  arrange(-n) %>% 
+  slice(1:5) %>% 
+  transmute("#" = 1:5, County = county, Accidents = n) 
+
+# Vi har nu en tabel med fordelingen af alvorlige ulykker 
+flextable(kde_table)
+
+flextable(bc_table)
+
+st_area(nc_counties)
+```
+#### Can we get closer?
+
+Until now we have been looking at the bike crashes state-wide. Now we will test out these same methods to the most crash prone county: *Wake*.
+
+Again we wan't to me mindful of our goal. We are mapping a select part of the same dataset as we have been working with.
+
+```{r}
+# Can we identitfy the most accident prone roads in Wake County?
+bc_wake <- 
+bike_crash %>% 
+  filter(county == "Wake") %>% 
+  dplyr::select(x, y, county)
+```
+
+We have gone from 12173 observations to 1603 observations
+
+```{r}
+nrow(bike_crash)
+nrow(bc_wake)
+```
+
+
+```{r}
+bc_wake_severe <- 
+bike_crash_severe %>% 
+  filter(county == "Wake") %>% 
+  dplyr::select(x, y, county)
+
+nrow(bc_wake_severe)
+```
+
+Out of these 90 are major crashes. 
+
+Let's do some mapping!
+
+```{r}
+# Read in townships geometries for Wake County
+townships <- st_read(
+  "~/R/Projects/bike_crash/raw_data/shapefiles/township/82ccb59f-6236-472d-aa1c-3122e21fd44a2020330-1-1uz3cqd.0mwb.shp") %>% janitor::clean_names()
+
+# We read in roadline-geometries (previously downloaded using the tigris-package)
+roads_wake <- read_rds("~/R/Projects/bike_crash/processed_data/roads_wake.rds") %>% 
+          dplyr::select(!c(RTTYP, MTFCC), 
+                street_name = FULLNAME, 
+                id = LINEARID)
+
+tm_shape(roads_wake) + 
+   tm_lines(lwd = 0.7, col = "grey", alpha = 0.4) +
+  tm_shape(bc_wake) + 
+   tm_dots(col = "grey60", size = 0.1, alpha = 0.5) +
+  tm_shape(bc_wake_severe) +
+  tm_dots(col = "brown3", size = 0.1, alpha = 0.9) +
+  tm_layout(frame = TRUE,
+            main.title = "Map 6: Bike crashes in Wake county", 
+            main.title.position = "center",
+            main.title.size = .9)
+```
+
+Here's the spatial distribution of crashes in Wake County. It seems the crash locations take place within the same few clusters. 
+
+Let's see if these clusters appear more clearly throught the lens of the 2D-KDE.
+
+```{r Wake Heatmapping}
+# We calculate the bandwidth
+bandwidth <- mean(c(MASS::bandwidth.nrd(bc_wake$x), MASS::bandwidth.nrd(bc_wake$y)))
+
+# And run the actual algorithm
+kde_wake <- MASS::kde2d(bc_wake$x, 
+                        bc_wake$y, 
+                        h = bandwidth, 
+                        n = 1000)
+
+# This we can convert to rasters (for mapping purposes)
+kde_wake <- raster(kde_wake)
+
+# And we map it
+tm_shape(kde_wake) + 
+  tm_raster("layer",  
+            palette = col_palette) + 
+tm_shape(roads_wake) +
+  tm_lines(col = "black",
+           alpha = .5,
+           lwd = .3) +
+tm_layout(main.title = "Map 7: Heatmapping bike crashes in Wake County", 
+            main.title.position = "center",
+            main.title.size = .9,
+            main.title.fontfamily = "IBM Plex Sans",
+            frame = TRUE, 
+            legend.show = FALSE,
+            bg.color = "transparent") +
+  tm_credits("Bandwidth = 0.06 (metodespecificeret)", position = c("right", "bottom"), align = "right")
+
+#_ _ _ _ _ _
+# SEVERE ACCIDENTS
+
+bandwidth <- mean(c(MASS::bandwidth.nrd(bc_wake_severe$x), MASS::bandwidth.nrd(bc_wake_severe$y)))
+
+kde_wake <- MASS::kde2d(bc_wake_severe$x, 
+                        bc_wake_severe$y, 
+                        h = bandwidth, 
+                        n = 1000)
+
+kde_wake <- raster(kde_wake)
+
+tm_shape(kde_wake) + 
+  tm_raster("layer",  
+            palette = col_palette) + 
+  tm_shape(roads_wake) +
+   tm_lines(col = "black",
+           alpha = .5,
+           lwd = .3) +
+  tm_layout(main.title = "Map 8: Heatmapping severe bike crashes in Wake County", 
+            main.title.position = "center",
+            main.title.size = .9,
+            main.title.fontfamily = "IBM Plex Sans",
+            frame = TRUE, 
+            legend.show = FALSE) +
+  tm_credits("Bandwidth = 0.11 (metodespecificeret)", position = c("right", "bottom"), align = "right")
+
+```
+

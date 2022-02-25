@@ -5,34 +5,40 @@ date: '2022-02-17'
 ---
 
 <script src="{{< blogdown/postref >}}index.en_files/header-attrs/header-attrs.js"></script>
+<link href="{{< blogdown/postref >}}index.en_files/tabwid/tabwid.css" rel="stylesheet" />
 
 
 <div id="outline-for-this-post" class="section level3">
-<h3>Outline for this post</h3>
-<p>This is the first post in a 3-part series of working with the <em>brike crash</em>-dataset.</p>
+<h3>Outline for this post:</h3>
+<p>This is the third post in a 4-part series of working with the <em>brike crash</em>-dataset.</p>
 <ol style="list-style-type: decimal">
 <li><a href="https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/">Introducing the bike crash-dataset</a></li>
-<li>Mapping bike crashes with GIS-tools using the R-command line</li>
-<li>Identifying environmental factors that affect the number of crashes</li>
+<li><a href="https://sdavidsson.netlify.app/post/2022-02-15-bike-crash-2-which-factors-contribute-to-bike-crash-severity/">The causes of major injuries</a></li>
+<li>GIS-tools using the R-command line</li>
 <li>How can these insights make an impact?</li>
 </ol>
-<p>In the first post I introduced the dataset and concluded that it is rather qualitative in nature. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity.</p>
-<p>In this post we will be focusing on mapping the crash locations and demonstrating how different mapping methods communicate different …</p>
-<div id="the-qustion-we-are-dealing-with-is" class="section level4">
-<h4>The qustion we are dealing with is: …</h4>
+<p>Upon until now our key findings have been:</p>
+<ol style="list-style-type: decimal">
+<li>In the first post I introduced the dataset and concluded that it is rather qualitative in nature.</li>
+<li>This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity.</li>
+</ol>
+<p>In this post we will be mapping crash locations. The assumption is that bike crashes are spatially clustered phenomena - meaning some areas are more prone to crashes than others. The driving factors behind effect can be more or less tangible or direct - but nevertheless observable.</p>
+<p>This analysis can then be presented to decision makers in order for them to make a more informed decision on where safety improvement spending should be focused.</p>
+<div id="thus-qustion-we-are-trying-to-answer-is" class="section level4">
+<h4>Thus qustion we are trying to answer is:</h4>
+</div>
+<div id="which-locations-are-most-prone-to-bike-crashes" class="section level4">
+<h4>Which locations are most prone to bike crashes?</h4>
+<p>Now let’s get to it!</p>
 <pre class="r"><code># Load packages
-pacman::p_load(tidyverse, sf, tmap, plotly, raster)
+pacman::p_load(tidyverse, sf, tmap, plotly, raster, flextable)
 
 # Read in datasets
 bike_crash &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/bike_crash.rds&quot;) %&gt;% 
   st_as_sf(coords = c(x = &quot;longitude&quot;, y = &quot;latitude&quot;), crs = &quot;NAD83&quot;) 
 
 # Read in North Carolina counties geometry
-nc_counties &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds&quot;)</code></pre>
-</div>
-<div id="a-first-map-of-crash-locations" class="section level4">
-<h4>A first map of crash locations</h4>
-<p>Initially we are only interested in mapping the geographical distributions of crashes - ie. the locations of crashes.</p>
+nc_counties &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/nc_counties_geom.rds&quot;) %&gt;%  st_transform(crs = &quot;NAD83&quot;)</code></pre>
 <p>First of all we know that 72 % of the registered crashes take place in urban areas.</p>
 <pre class="r"><code>bike_crash %&gt;% 
   st_drop_geometry() %&gt;% 
@@ -69,40 +75,62 @@ nc_counties &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/nc_count
 ## 5 Urban (&gt;70% Developed)       Rural         895
 ## 6 Urban (&gt;70% Developed)       Urban        7804
 ## 7 Urban (&gt;70% Developed)       &lt;NA&gt;            1</code></pre>
+<p><em>Now we want to know which urban areas the crashes are taking place in? We’ll do some mapping</em></p>
+</div>
+<div id="a-first-map-of-crash-locations" class="section level4">
+<h4>A first map of crash locations</h4>
+<p>Initially we are only interested in mapping the geographical distributions of crashes - ie. the locations of crashes.</p>
 <p>Now let’s create a map of crash locations.</p>
-<pre class="r"><code>tmap_mode(&quot;plot&quot;) 
-
-# bike_crash &lt;- st_as_sf(bike_crash, coords = c(x = &quot;longitude&quot;, y = &quot;latitude&quot;), crs = &quot;NAD83&quot;) 
-
-# Initial map of crash locations
+<pre class="r"><code># Initial map of crash locations
 bike_crash %&gt;%
-  tm_shape() + 
+  tm_shape(bbox = st_bbox(bike_crash)) + 
   tm_dots(alpha = 0.1) + 
   tm_shape(nc_counties) + 
   tm_borders(alpha = 0.4, lwd = 1.3) + 
   tm_layout(frame = FALSE,
-            #main.title = &quot;Bike Crashes in North Carolina 2007-2019&quot;, 
+            main.title = &quot;Map 1: Bike Crashes in North Carolina 2007-2019&quot;, 
             main.title.position = &quot;center&quot;,
             main.title.fontfamily = &quot;IBM Plex Sans&quot;,
             main.title.size = 1,
             ) </code></pre>
 <p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
-<p>This is a simple and very useful map. We see the geographic distributions of crashes, and we are confirmed that a majority of crashes seem to take place in the same few clusters. This map does however have limitations. The crash locations are displayed by somewhat transparent black dots. The transparency helps us draw out the main distribution trends, but can also downplay the dots that appear outside of the clusters. Again this map is useful - but I will deomstrate a more methodical approach.</p>
+<p>This is a simple and very useful map. We see the geographic distributions of crashes, and we are confirmed that <em>a majority of crashes seem to take place in the same few clusters</em>.</p>
+<pre class="r"><code># We filter out the most severe accidents only
+bike_crash_severe &lt;- bike_crash %&gt;% filter(crash_sevr %in% c(&quot;Killed&quot;, &quot;Suspected Serious Injury&quot;))
+
+# Initial map of crash locations
+bike_crash_severe %&gt;%
+  tm_shape(bbox = st_bbox(bike_crash)) + 
+  tm_dots(alpha = 0.1) + 
+  tm_shape(nc_counties) + 
+  tm_borders(alpha = 0.4, lwd = 1.3) + 
+  tm_layout(frame = FALSE,
+            main.title = &quot;Map 2: Bike Crashes in North Carolina 2007-2019 with severe injuries&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            main.title.size = 1,
+            ) </code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Here we have filtered out crashes with the most severe injuries and terefore go from having 12173 observations to 928. There seems to be a spatial relationship between the two crash types - suggesting a certain portion of accidents are expected to be severe. We would have to do a spatio-statistical test to prove this relationship, but I will save that for later. If there is a hard to measure spatial effect at play (which is very likely), this insight would tell us how strongly we could expect this.</p>
+<p>Again these maps are simple and useful. They do however have their limitations. The crash locations are displayed by somewhat transparent black dots. The transparency helps us draw out the main distribution trends, but can also downplay the dots that appear outside of the clusters. I will now deomstrate a more methodical approach.</p>
 </div>
 <div id="heatmapping-with-2d-kde" class="section level4">
 <h4>Heatmapping with 2D-KDE</h4>
-<p>One of the most common methodical GIS-visualisations is heatmapping. This is often achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let’s just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of <em>binnings</em>) - the difference being that KDE <em>smooths</em> out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by differences between the observations.</p>
-<p>Another interesting point to notice is that the <em>binnings</em> are represented by squares that are placed on the map. In general it can be said that computer graphics rely on either <em>vectors</em> or <em>rasters</em>. The former is essentially a technique that generates lines in between predefined points and is thus more scalable (or zoomable if you want). The latter is a pixel mosaic with coloured squares and is thus computationally more efficient.</p>
+<p>One of the most common methodical GIS-visualisations is heatmapping. This can be achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let’s just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of <em>binnings</em>) - the difference being that KDE <em>smooths</em> out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by differences between the observations. Thus it can be said that this entails smoothing of observed coordinates.</p>
+<p>Another interesting point to notice is that the <em>binnings</em> are represented by squares that are placed on the map. Generally computer graphics rely on two distinct types of technologies <em>vectors</em> and <em>rasters</em>. The former is essentially a technique that generates lines in between predefined points and is thus more scaleable (or zoom-able if you want). The latter is a pixel mosaic consisting of coloured squares of a predfined size - which is thus computationally more efficeient.</p>
 <pre class="r"><code># We specify the number of quadrats (the level of detail in our raster map)
 n_quadrats &lt;- 1000
 
 # Determining the optimal bandwidth (the mean of two one dimensional algorithms)
-bandwidth &lt;- mean(c(MASS::bandwidth.nrd(bike_crash$x), MASS::bandwidth.nrd(bike_crash$y)))
+bandwidth1 &lt;- mean(c(
+                    MASS::bandwidth.nrd(bike_crash$x), 
+                    MASS::bandwidth.nrd(bike_crash$y)
+                    ))
 
 # We run the 2d-KDE algorithm
 kde &lt;- MASS::kde2d(bike_crash$x, 
                    bike_crash$y, 
-                   h = bandwidth, 
+                   h = bandwidth1, 
                    n = n_quadrats)
 
 # Which we convert to rasters 
@@ -112,14 +140,14 @@ kde &lt;- raster::raster(kde)
 # MAPPING
 tmap_mode(&quot;plot&quot;) 
 
-# We&#39;re gonna set a custom colour palette
+# We set a custom colour palette
 col_palette &lt;- c(&quot;#FFFFFF&quot;, &quot;#fee391&quot;, &quot;#fec44f&quot;, &quot;#fe9929&quot;, &quot;#ec7014&quot;, &quot;#cc4c02&quot;, &quot;#8c2d04&quot;)
 
 # These are areas we want to point out
-top_counties &lt;- nc_counties %&gt;% filter(county %in% c(&quot;Mecklenburg County&quot;, &quot;Wake County&quot;, &quot;Durham County&quot;, &quot;New Hanover County&quot;, &quot;Guilford County&quot;))
+top_counties &lt;- nc_counties %&gt;% filter(county %in% c(&quot;Mecklenburg County&quot;, &quot;Wake County&quot;, &quot;New Hanover County&quot;))
 
 # And we create our initial map
-tm_shape(nc_counties) + 
+tm_shape(nc_counties, bbox = st_bbox(bike_crash)) + 
   tm_polygons(alpha = 0) + 
 tm_shape(kde) + 
   tm_raster(&quot;layer&quot;,  
@@ -129,10 +157,10 @@ tm_shape(nc_counties) +
   tm_polygons(alpha = 0, 
               lwd = 1.3,
               id = &quot;county&quot;) +
-  tm_layout(main.title = &quot;Areas with highest densities of bike crash occurances&quot;, 
+  tm_layout(main.title = &quot;Map 3: Heatmap of bike crash occurances&quot;, 
             main.title.position = &quot;center&quot;,
             main.title.size = .9,
-            frame = TRUE, 
+            frame = FALSE, 
             legend.show = FALSE
             ) +
   tm_shape(top_counties) +
@@ -142,27 +170,24 @@ tm_shape(nc_counties) +
           shadow = T,
           clustering = F) + 
   tm_credits(&quot;Bandwidth = 0.68&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;)</code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
-<p>We will do the same for the crashes with the most crashes only</p>
-<pre class="r"><code># We filter out the most severe accidents only
-bike_crash_severe &lt;- bike_crash %&gt;% filter(crash_sevr %in% c(&quot;Killed&quot;, &quot;Suspected Serious Injury&quot;))
-
-# And do the very same procedure 
-
-#We specify our bandwidth
-bandwidth &lt;- mean(c(MASS::bandwidth.nrd(bike_crash_severe$x), MASS::bandwidth.nrd(bike_crash_severe$y)))
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>We will do the same for the crashes with the most severe crashes only. These were the ones we modeled in part two.</p>
+<pre class="r"><code>#We specify our bandwidth
+bandwidth2 &lt;- mean(c(
+  MASS::bandwidth.nrd(bike_crash_severe$x), 
+  MASS::bandwidth.nrd(bike_crash_severe$y)))
 
 # We run the KDE
 kde &lt;- MASS::kde2d(bike_crash_severe$x, 
                    bike_crash_severe$y, 
-                   h = bandwidth, 
+                   h = bandwidth2, 
                    n = n_quadrats)
 
 # And convert to raster
 kde &lt;- raster(kde)
 
 # Her plottes de alvorligste ulykker
-tm_shape(nc_counties) + 
+tm_shape(nc_counties, bbox = st_bbox(bike_crash)) + 
   tm_polygons(alpha = 0) + 
 tm_shape(kde) + 
   tm_raster(&quot;layer&quot;,  
@@ -172,25 +197,27 @@ tm_shape(nc_counties) +
   tm_polygons(alpha = 0, 
               lwd = 1.3,
               id = &quot;county&quot;) +
-  tm_layout(main.title = &quot;&quot;, 
+  tm_layout(main.title = &quot;Map 4: Heatmap of severe crash locations only&quot;, 
             main.title.position = &quot;center&quot;,
             main.title.size = .9,
-            frame = TRUE, 
+            frame = FALSE, 
             legend.show = FALSE
             ) + 
-  tm_credits(&quot;Bandwidth = 1,2 (metodespecificeret)&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;)</code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
-<p>Bandwidth is too high. We can manually adjust that.</p>
+  tm_credits(&quot;Bandwidth = 1.2&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p>When we filtered out the severe injuries only we reduced the number of observations from 12173 to 928, but we mapped them onto the same surface area. As we estimated the appropriate bandwidth methodically, we should note that this value has almost doubled, and we are now smoothing out between significantly fewer observations. Thus the maps aren’t directly comparable.</p>
+<p><a href="https://www.researchgate.net/profile/Maja-Kalinic-2/publication/325825793_Kernel_Density_Estimation_KDE_vs_Hot-Spot_Analysis_-_Detecting_Criminal_Hot_Spots_in_the_City_of_San_Francisco/links/5b27de230f7e9b332a31af55/Kernel-Density-Estimation-KDE-vs-Hot-Spot-Analysis-Detecting-Criminal-Hot-Spots-in-the-City-of-San-Francisco.pdf">Kalinic et al</a> suggest we experiment with manual adjustments to the bandwidth in order for the map to portray the message we are trying to portray.</p>
+<p>How would the map look with the same bandwidth as in the first heatmap?</p>
 <pre class="r"><code>kde &lt;- MASS::kde2d(bike_crash_severe$x, 
                    bike_crash_severe$y, 
-                   h = bandwidth/3,  # halveret bandwidth
+                   h = bandwidth1, 
                    n = n_quadrats)
 
 kde &lt;- raster(kde)
 
 top_counties &lt;- nc_counties %&gt;% filter(county %in% c(&quot;Mecklenburg County&quot;, &quot;Wake County&quot;, &quot;New Hanover County&quot;))
 
-tm_shape(nc_counties) + 
+tm_shape(nc_counties, bbox = st_bbox(bike_crash)) + 
   tm_polygons(alpha = 0) + 
 tm_shape(kde) + 
   tm_raster(&quot;layer&quot;,  
@@ -200,15 +227,292 @@ tm_shape(nc_counties) +
   tm_polygons(alpha = 0, 
               lwd = 1.3,
               id = &quot;county&quot;) +
-  tm_layout(frame = TRUE, 
+  tm_layout(main.title = &quot;Map 5: Heatmap of severe crash locations only&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.size = .9,
+            frame = FALSE, 
             legend.show = FALSE) +
     tm_shape(top_counties) + 
-  tm_credits(&quot;Bandwidth = 0.4 (manuel justering)&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;) +
+  tm_credits(&quot;Bandwidth = 0.68&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;) +
   tm_text(&quot;county&quot;,
           just = &quot;left&quot;,
           scale = 0.75,
           shadow = T,
           clustering = F) </code></pre>
-<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>This map displays quite the same message as map 3 - meaning.</p>
+<p>Of course Map 3 includes all observations and this one (Map 5) doesn’t, but as we are dealing with a shared of 8 % - this shouldn’t be a problem.</p>
+<p>So what have we learned from this?</p>
+<ul>
+<li><p>We have demonstrated how 2D-KDE can be used as a data visualisation method. It is us a useful method that smooths out data points and renders <em>belts</em> or <em>blobs</em> where the occurance in question is observed.</p></li>
+<li><p>We experimented with the bandwidth settings and found that a methodical estimation is useful, but also that manual adjustment is allowed for more effective communication of the desired messsage. Without manipulating of course.</p></li>
+<li><p>In the tables below - we see the effect of the smoothing method. Here I have counted the occurances in each county, and further summarized the heatvalues for each county. Note that New Hannover hardly compares with Mecklenburg and Wake on the absolute level, but absolutely does on the heatmap. This is of course a question of looking at absolute and relative numbers, and is likely an indication of New Hannovers size compared to the others.</p></li>
+</ul>
+<pre class="r"><code># Whick counties have the most accidents?
+# Hetmap to points-dataframe
+kde_points &lt;- rasterToPoints(kde) %&gt;% as.data.frame()
+
+# Heatmap points to sf
+kde_points &lt;- st_as_sf(kde_points, coords = c(x = &quot;x&quot;, y = &quot;y&quot;), crs = &quot;NAD83&quot;)
+
+# Spatial join to counties-polygons
+kde_nc &lt;- st_join(nc_counties, kde_points)
+
+# Which counties have been assigned the highest values in the KDE
+kde_table &lt;- kde_nc %&gt;%
+  st_drop_geometry() %&gt;%
+  group_by(county) %&gt;%
+  summarise(heatvalue = mean(layer)) %&gt;%
+  arrange(desc(heatvalue)) %&gt;%
+  ungroup() %&gt;% 
+  mutate(county = str_remove(county, &quot; County&quot;))
+
+kde_table &lt;- 
+kde_table %&gt;% slice(1:5) %&gt;% transmute(&quot;#&quot; = 1:5, County = county, &quot;Heatvalue&quot; = heatvalue) 
+
+# Which counties have the highest number of accidents
+bc_table &lt;- 
+bike_crash %&gt;% 
+  st_drop_geometry() %&gt;% 
+  count(county) %&gt;% 
+  arrange(-n) %&gt;% 
+  slice(1:5) %&gt;% 
+  transmute(&quot;#&quot; = 1:5, County = county, Accidents = n) 
+
+# Vi har nu en tabel med fordelingen af alvorlige ulykker 
+flextable(kde_table)</code></pre>
+<template id="9ca23d4c-8cd2-469e-8362-e403e8d22b2a"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-601f79d4{}.cl-600bf58a{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-600c190c{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-600c1916{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-600d243c{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-600d2450{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-600d245a{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-600d245b{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-600d2464{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-600d246e{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-601f79d4'>
+<thead><tr style="overflow-wrap:break-word;"><td class="cl-600d2464"><p class="cl-600c190c"><span class="cl-600bf58a">#</span></p></td><td class="cl-600d246e"><p class="cl-600c1916"><span class="cl-600bf58a">County</span></p></td><td class="cl-600d2464"><p class="cl-600c190c"><span class="cl-600bf58a">Heatvalue</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">1</span></p></td><td class="cl-600d2450"><p class="cl-600c1916"><span class="cl-600bf58a">Mecklenburg</span></p></td><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">0.3203212</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">2</span></p></td><td class="cl-600d2450"><p class="cl-600c1916"><span class="cl-600bf58a">Wake</span></p></td><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">0.3190061</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">3</span></p></td><td class="cl-600d2450"><p class="cl-600c1916"><span class="cl-600bf58a">New Hanover</span></p></td><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">0.2803095</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">4</span></p></td><td class="cl-600d2450"><p class="cl-600c1916"><span class="cl-600bf58a">Durham</span></p></td><td class="cl-600d243c"><p class="cl-600c190c"><span class="cl-600bf58a">0.2306654</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-600d245a"><p class="cl-600c190c"><span class="cl-600bf58a">5</span></p></td><td class="cl-600d245b"><p class="cl-600c1916"><span class="cl-600bf58a">Forsyth</span></p></td><td class="cl-600d245a"><p class="cl-600c190c"><span class="cl-600bf58a">0.1869269</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="0f54255a-80f5-4e97-a614-dea7e655abb3"></div>
+<script>
+var dest = document.getElementById("0f54255a-80f5-4e97-a614-dea7e655abb3");
+var template = document.getElementById("9ca23d4c-8cd2-469e-8362-e403e8d22b2a");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code>flextable(bc_table)</code></pre>
+<template id="1e74abcb-4f78-4e3c-9b0a-3ab1bcb030a0"><style>
+.tabwid table{
+  border-spacing:0px !important;
+  border-collapse:collapse;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
+  border-width: 0;
+  display: table;
+  margin-top: 1.275em;
+  margin-bottom: 1.275em;
+  border-color: transparent;
+}
+.tabwid_left table{
+  margin-left:0;
+}
+.tabwid_right table{
+  margin-right:0;
+}
+.tabwid td {
+    padding: 0;
+}
+.tabwid a {
+  text-decoration: none;
+}
+.tabwid thead {
+    background-color: transparent;
+}
+.tabwid tfoot {
+    background-color: transparent;
+}
+.tabwid table tr {
+background-color: transparent;
+}
+</style><div class="tabwid"><style>.cl-60388744{}.cl-602e155c{font-family:'Helvetica';font-size:11pt;font-weight:normal;font-style:normal;text-decoration:none;color:rgba(0, 0, 0, 1.00);background-color:transparent;}.cl-602e274a{margin:0;text-align:right;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-602e2754{margin:0;text-align:left;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height: 1;background-color:transparent;}.cl-602e5dfa{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-602e5e0e{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 0 solid rgba(0, 0, 0, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-602e5e0f{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-602e5e18{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 0 solid rgba(0, 0, 0, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-602e5e22{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}.cl-602e5e23{width:54pt;background-color:transparent;vertical-align: middle;border-bottom: 2pt solid rgba(102, 102, 102, 1.00);border-top: 2pt solid rgba(102, 102, 102, 1.00);border-left: 0 solid rgba(0, 0, 0, 1.00);border-right: 0 solid rgba(0, 0, 0, 1.00);margin-bottom:0;margin-top:0;margin-left:0;margin-right:0;}</style><table class='cl-60388744'>
+<thead><tr style="overflow-wrap:break-word;"><td class="cl-602e5e22"><p class="cl-602e274a"><span class="cl-602e155c">#</span></p></td><td class="cl-602e5e23"><p class="cl-602e2754"><span class="cl-602e155c">County</span></p></td><td class="cl-602e5e22"><p class="cl-602e274a"><span class="cl-602e155c">Accidents</span></p></td></tr></thead><tbody><tr style="overflow-wrap:break-word;"><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">1</span></p></td><td class="cl-602e5e0e"><p class="cl-602e2754"><span class="cl-602e155c">Wake</span></p></td><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">1,603</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">2</span></p></td><td class="cl-602e5e0e"><p class="cl-602e2754"><span class="cl-602e155c">Mecklenburg</span></p></td><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">1,547</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">3</span></p></td><td class="cl-602e5e0e"><p class="cl-602e2754"><span class="cl-602e155c">New Hanover</span></p></td><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">828</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">4</span></p></td><td class="cl-602e5e0e"><p class="cl-602e2754"><span class="cl-602e155c">Guilford</span></p></td><td class="cl-602e5dfa"><p class="cl-602e274a"><span class="cl-602e155c">786</span></p></td></tr><tr style="overflow-wrap:break-word;"><td class="cl-602e5e0f"><p class="cl-602e274a"><span class="cl-602e155c">5</span></p></td><td class="cl-602e5e18"><p class="cl-602e2754"><span class="cl-602e155c">Durham</span></p></td><td class="cl-602e5e0f"><p class="cl-602e274a"><span class="cl-602e155c">584</span></p></td></tr></tbody></table></div></template>
+<div class="flextable-shadow-host" id="24de40bb-5dbd-4b70-8dd8-9422854b07bd"></div>
+<script>
+var dest = document.getElementById("24de40bb-5dbd-4b70-8dd8-9422854b07bd");
+var template = document.getElementById("1e74abcb-4f78-4e3c-9b0a-3ab1bcb030a0");
+var caption = template.content.querySelector("caption");
+if(caption) {
+  caption.style.cssText = "display:block;text-align:center;";
+  var newcapt = document.createElement("p");
+  newcapt.appendChild(caption)
+  dest.parentNode.insertBefore(newcapt, dest.previousSibling);
+}
+var fantome = dest.attachShadow({mode: 'open'});
+var templateContent = template.content;
+fantome.appendChild(templateContent);
+</script>
+
+<pre class="r"><code>st_area(nc_counties)</code></pre>
+<pre><code>## Units: [m^2]
+##   [1]  948156811 2120701585 1912334034  695786282 2090677614 1679090178
+##   [7] 1339067113 1049884719 1309869876  798799775  707158121 1709103243
+##  [13]  961103950 1472756695 1561418132 1399259370  626439610  869415834
+##  [19] 1317853972  595801288 1390403573 1044951174 2042497277 1478813688
+##  [25] 1858102681  661142751  573615706 1456169932  774236925 1108790460
+##  [31]  725788875  797135556  613130666 1035737258 1393154557 1107766148
+##  [37]  574029237  498874802 2489768275 2042822805 1259631033 1565679228
+##  [43] 1315662216 2502207256 2280493836  949823256  677977852  969549504
+##  [49] 3654461528 1414896401  893365576 1417332853 1280297897  796816880
+##  [55]  673482421 1702833324 1818358686 1113789494 1145019765 2087051648
+##  [61] 1075084074 1252394340 1917912123 1658502189 1135631170  944228473
+##  [67] 1548503693 1077535035 1045635856 2769462107 1412651402 1419500964
+##  [73] 1707240698 2448724975  821294959 1035757286  773900147 1138918219
+##  [79] 1406955567 1148831196 1326547502 1148253530 2242009044  862103596
+##  [85] 1437906781 1236473222  933560274 1178316756 2191174436  848870405
+##  [91]  596223668 2473504119 2428013666 1191166520 1955799144 3188676935
+##  [97] 1249473848 1425653096 1211963017 1281875251</code></pre>
+</div>
+<div id="can-we-get-closer" class="section level4">
+<h4>Can we get closer?</h4>
+<p>Until now we have been looking at the bike crashes state-wide. Now we will test out these same methods to the most crash prone county: <em>Wake</em>.</p>
+<p>Again we wan’t to me mindful of our goal. We are mapping a select part of the same dataset as we have been working with.</p>
+<pre class="r"><code># Can we identitfy the most accident prone roads in Wake County?
+bc_wake &lt;- 
+bike_crash %&gt;% 
+  filter(county == &quot;Wake&quot;) %&gt;% 
+  dplyr::select(x, y, county)</code></pre>
+<p>We have gone from 12173 observations to 1603 observations</p>
+<pre class="r"><code>nrow(bike_crash)</code></pre>
+<pre><code>## [1] 12173</code></pre>
+<pre class="r"><code>nrow(bc_wake)</code></pre>
+<pre><code>## [1] 1603</code></pre>
+<pre class="r"><code>bc_wake_severe &lt;- 
+bike_crash_severe %&gt;% 
+  filter(county == &quot;Wake&quot;) %&gt;% 
+  dplyr::select(x, y, county)
+
+nrow(bc_wake_severe)</code></pre>
+<pre><code>## [1] 90</code></pre>
+<p>Out of these 90 are major crashes.</p>
+<p>Let’s do some mapping!</p>
+<pre class="r"><code># Read in townships geometries for Wake County
+townships &lt;- st_read(
+  &quot;~/R/Projects/bike_crash/raw_data/shapefiles/township/82ccb59f-6236-472d-aa1c-3122e21fd44a2020330-1-1uz3cqd.0mwb.shp&quot;) %&gt;% janitor::clean_names()</code></pre>
+<pre><code>## Reading layer `82ccb59f-6236-472d-aa1c-3122e21fd44a2020330-1-1uz3cqd.0mwb&#39; from data source `/Users/Sighvatur/R/Projects/bike_crash/raw_data/shapefiles/township/82ccb59f-6236-472d-aa1c-3122e21fd44a2020330-1-1uz3cqd.0mwb.shp&#39; 
+##   using driver `ESRI Shapefile&#39;
+## Simple feature collection with 20 features and 4 fields
+## Geometry type: POLYGON
+## Dimension:     XY
+## Bounding box:  xmin: -78.99507 ymin: 35.51948 xmax: -78.25337 ymax: 36.07629
+## Geodetic CRS:  WGS 84</code></pre>
+<pre class="r"><code># We read in roadline-geometries (previously downloaded using the tigris-package)
+roads_wake &lt;- read_rds(&quot;~/R/Projects/bike_crash/processed_data/roads_wake.rds&quot;) %&gt;% 
+          dplyr::select(!c(RTTYP, MTFCC), 
+                street_name = FULLNAME, 
+                id = LINEARID)
+
+tm_shape(roads_wake) + 
+   tm_lines(lwd = 0.7, col = &quot;grey&quot;, alpha = 0.4) +
+  tm_shape(bc_wake) + 
+   tm_dots(col = &quot;grey60&quot;, size = 0.1, alpha = 0.5) +
+  tm_shape(bc_wake_severe) +
+  tm_dots(col = &quot;brown3&quot;, size = 0.1, alpha = 0.9) +
+  tm_layout(frame = TRUE,
+            main.title = &quot;Map 6: Bike crashes in Wake county&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.size = .9)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>Here’s the spatial distribution of crashes in Wake County. It seems the crash locations take place within the same few clusters.</p>
+<p>Let’s see if these clusters appear more clearly throught the lens of the 2D-KDE.</p>
+<pre class="r"><code># We calculate the bandwidth
+bandwidth &lt;- mean(c(MASS::bandwidth.nrd(bc_wake$x), MASS::bandwidth.nrd(bc_wake$y)))
+
+# And run the actual algorithm
+kde_wake &lt;- MASS::kde2d(bc_wake$x, 
+                        bc_wake$y, 
+                        h = bandwidth, 
+                        n = 1000)
+
+# This we can convert to rasters (for mapping purposes)
+kde_wake &lt;- raster(kde_wake)
+
+# And we map it
+tm_shape(kde_wake) + 
+  tm_raster(&quot;layer&quot;,  
+            palette = col_palette) + 
+tm_shape(roads_wake) +
+  tm_lines(col = &quot;black&quot;,
+           alpha = .5,
+           lwd = .3) +
+tm_layout(main.title = &quot;Map 7: Heatmapping bike crashes in Wake County&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.size = .9,
+            main.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            frame = TRUE, 
+            legend.show = FALSE,
+            bg.color = &quot;transparent&quot;) +
+  tm_credits(&quot;Bandwidth = 0.06 (metodespecificeret)&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/Wake%20Heatmapping-1.png" width="672" /></p>
+<pre class="r"><code>#_ _ _ _ _ _
+# SEVERE ACCIDENTS
+
+bandwidth &lt;- mean(c(MASS::bandwidth.nrd(bc_wake_severe$x), MASS::bandwidth.nrd(bc_wake_severe$y)))
+
+kde_wake &lt;- MASS::kde2d(bc_wake_severe$x, 
+                        bc_wake_severe$y, 
+                        h = bandwidth, 
+                        n = 1000)
+
+kde_wake &lt;- raster(kde_wake)
+
+tm_shape(kde_wake) + 
+  tm_raster(&quot;layer&quot;,  
+            palette = col_palette) + 
+  tm_shape(roads_wake) +
+   tm_lines(col = &quot;black&quot;,
+           alpha = .5,
+           lwd = .3) +
+  tm_layout(main.title = &quot;Map 8: Heatmapping severe bike crashes in Wake County&quot;, 
+            main.title.position = &quot;center&quot;,
+            main.title.size = .9,
+            main.title.fontfamily = &quot;IBM Plex Sans&quot;,
+            frame = TRUE, 
+            legend.show = FALSE) +
+  tm_credits(&quot;Bandwidth = 0.11 (metodespecificeret)&quot;, position = c(&quot;right&quot;, &quot;bottom&quot;), align = &quot;right&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index.en_files/figure-html/Wake%20Heatmapping-2.png" width="672" /></p>
 </div>
 </div>
