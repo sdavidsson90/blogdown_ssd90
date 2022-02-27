@@ -20,7 +20,7 @@ options(scipen = 999,
 ```
 
 
-### Outline for this post: 
+### Outline for this post:
 This is the third post in a 4-part series of working with the *brike crash*-dataset. 
 
 1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
@@ -29,9 +29,7 @@ This is the third post in a 4-part series of working with the *brike crash*-data
 4. How can these insights make an impact? 
 
 Upon until now our key findings have been:
-
-1. In the first post I introduced the dataset and concluded that it is rather qualitative in nature. 
-2. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity. 
+In the first post I introduced the dataset and concluded that it is rather qualitative in nature. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity. 
 
 In this post we will be mapping crash locations. The assumption is that bike crashes are spatially clustered phenomena - meaning some areas are more prone to crashes than others. The driving factors behind effect can be more or less tangible or direct - but nevertheless observable. 
 
@@ -128,7 +126,7 @@ Here we have filtered out crashes with the most severe injuries and terefore go 
 Again these maps are simple and useful. They do however have their limitations. The crash locations are displayed by somewhat transparent black dots. The transparency helps us draw out the main distribution trends, but can also downplay the dots that appear outside of the clusters. I will now deomstrate a more methodical approach.
 
 #### Heatmapping with 2D-KDE
-One of the most common methodical GIS-visualisations is heatmapping. This can be achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let's just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of *binnings*) - the difference being that KDE *smooths* out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by differences between the observations. Thus it can be said that this entails smoothing of observed coordinates.
+One of the most common methodical GIS-visualisations is heatmapping. This can be achieved by using a two dimensional adaptation of the kernel density estimation. Without going into too much detail, let's just note that this method resembles the histogram where the frequency distribution of values are depicted (often within a number of *binnings*) - the difference being that KDE *smooths* out the variance by depicting them as probabilities rather than counts. The advantage of this method is that we get a methodical representation of the variance that is less affected by slgiht differences between these observation-binnings. Thus it can be said that this entails smoothing of observed coordinates.
 
 Another interesting point to notice is that the *binnings* are represented by squares that are placed on the map. Generally computer graphics rely on two distinct types of technologies *vectors* and *rasters*. The former is essentially a technique that generates lines in between predefined points and is thus more scaleable (or zoom-able if you want). The latter is a pixel mosaic consisting of coloured squares of a predfined size - which is thus computationally more efficeient. 
 
@@ -187,7 +185,7 @@ tm_shape(nc_counties) +
   tm_credits("Bandwidth = 0.68", position = c("right", "bottom"), align = "right")
 ```
 
-We will do the same for the crashes with the most severe crashes only. These were the ones we modeled in part two. 
+We will do the same for the crashes with the most severe crashes only. These were the ones we predicted in [part two]((https://sdavidsson.netlify.app/post/2022-02-15-bike-crash-2-which-factors-contribute-to-bike-crash-severity/). 
 
 ```{r}
 #We specify our bandwidth
@@ -263,20 +261,13 @@ tm_shape(nc_counties) +
           shadow = T,
           clustering = F) 
 ```
+*So which map do we choose?*
 
-This map displays quite the same message as map 3 - meaning.
+Choosing a depends on our goal. In this case we are interested in pointing out crash prone hot spots. We therefore want a map that doesn't. Knowing that 72 % of crashes take place in Urban areas, we should be able to get a clear picture of these hotspots. 
 
-Of course Map 3 includes all observations and this one (Map 5) doesn't, but as we are dealing with a shared  of 8 % - this shouldn't be a problem. 
-
-
-So what have we learned from this?
-
-- We have demonstrated how 2D-KDE can be used as a data visualisation method. It is us a useful method that smooths out data points and renders *belts* or *blobs* where the occurance in question is observed.
-
-- We experimented with the bandwidth settings and found that a methodical estimation is useful, but also that manual adjustment is allowed for more effective communication of the desired messsage. Without manipulating of course.
+Map 3 (all crashes) & 5 (severe crashes) had the same bandwidth and conveyed very much the same message. This sugessts that a certain percent of crashes can be expected to be severe. For Map 4 the bandwidth had doubled and conveyed a message of crashes taking place in belts rather than within the same areas. I therefore suggest we go with 3 & 5. 
 
 - In the tables below - we see the effect of the smoothing method. Here I have counted the occurances in each county, and further summarized the heatvalues for each county. Note that New Hannover hardly compares with Mecklenburg and Wake on the absolute level, but absolutely does on the heatmap. This is of course a question of looking at absolute and relative numbers, and is likely an indication of New Hannovers size compared to the others.
-
 
 ```{r Tables}
 # Whick counties have the most accidents?
@@ -310,12 +301,9 @@ bike_crash %>%
   slice(1:5) %>% 
   transmute("#" = 1:5, County = county, Accidents = n) 
 
-# Vi har nu en tabel med fordelingen af alvorlige ulykker 
+
 flextable(kde_table)
-
-flextable(bc_table)
-
-st_area(nc_counties)
+ flextable(bc_table)
 ```
 #### Can we get closer?
 
@@ -438,3 +426,8 @@ tm_shape(kde_wake) +
 
 ```
 
+#### So what have we learned from this?
+
+- We have demonstrated how 2D-KDE can be used as a data visualisation method. It is us a useful method that smooths out data points and renders *belts* or *blobs* where the occurance in question is observed. 
+- We experimented with the bandwidth settings and found that a methodical estimation is useful, but also that manual adjustment is allowed for more effective communication of the desired messsage.
+- We were thus able to identify the most crash prone areas in the state, as well as pointing out these areas specifically in Wake County. 

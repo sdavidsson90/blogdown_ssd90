@@ -32,6 +32,6 @@ pygmentsCodefencesGuessSyntax = true
 
 [params]
 displayMode = "light"
-disableThemeSwitcher = false 
+disableThemeSwitcher = true 
 
 contentratio = 0.666
