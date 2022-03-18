@@ -21,12 +21,11 @@ options(scipen = 999,
 
 
 ### Outline for this post:
-This is the third post in a 4-part series of working with the *brike crash*-dataset. 
+This is the third post in a 3-part series of working with the *brike crash*-dataset. 
 
 1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
 2. [The causes of major injuries](https://sdavidsson.netlify.app/post/2022-02-15-bike-crash-2-which-factors-contribute-to-bike-crash-severity/)
 3. GIS-tools using the R-command line
-4. How can these insights make an impact? 
 
 Upon until now our key findings have been:
 In the first post I introduced the dataset and concluded that it is rather qualitative in nature. This limits our modelling options to a degree. In the second post I did some classification-type modelling and identified factors that increase crash severity. 

@@ -4,7 +4,7 @@ author: "Sighvatur Davidsson"
 date: '2022-02-17'
 ---
 
-```{r Options, echo= FALSE}
+```{r Options, echo= FALSE, warning = FALSE}
 # Supress warnings
 knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
 
@@ -17,6 +17,7 @@ options(scipen = 999,
 
 library(blogdown)
 # blogdown::check_site() # Note to self: Try running this if anything goes wrong.
+
 ```
 
 ### Outline for this post
@@ -26,10 +27,9 @@ In this post I will be using machine learning methods to extrude insights that c
 1. [Introducing the bike crash-dataset](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/)
 2. The causes of major injuries
 3. [GIS-tools using the R-command line](https://sdavidsson.netlify.app/post/2022-02-17-bike-crash-3-gis-tools-using-the-r-command-line/)
-4. How can these insights make an impact? 
 
 ### The business problem
-Data analytics is essentially useless if we don't pay close attention to the core business problem we are working on. After all the purpose of machine learning is to gain insights that can be presented to decision makers in order for them to base their decisions on actual data - as opposed to guesswork or general assumptions. I will be discussing this topic further in [Bike Crash 4](google.com). Of course this project  does not have an actual decision maker on the receiving end, but as this is a critical consideration in data analytics, I don't want to leave it out. 
+Data analytics is essentially useless if we don't pay close attention to the core business problem we are working on. After all the purpose of machine learning is to gain insights that can be presented to decision makers in order for them to base their decisions on actual data - as opposed to guesswork or general assumptions. Of course this project  does not have an actual decision maker on the receiving end, but as this is a critical consideration in data analytics, I don't want to leave it out. 
 
 #### Vision zero
 In 2015 the North Carolinian transport authorities adopted a new policy for designing the states transportation network. The adoption of this policy legally obliges the authorities to base their traffic improvement measures on the principles of the Vision Zero project. This project strives to reduce the number of traffic related immobilities or deaths to zero. 

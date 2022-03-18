@@ -23,7 +23,6 @@ My first four blog posts will therefore be a presentation of some of the learnin
 1. Introducing the bike crash-dataset
 2. [The causes of major injuries](https://sdavidsson.netlify.app/post/2022-02-15-bike-crash-2-which-factors-contribute-to-bike-crash-severity/)
 3. [GIS-tools using the R-command line](https://sdavidsson.netlify.app/post/2022-02-17-bike-crash-3-gis-tools-using-the-r-command-line/)
-4. How can these insights make an impact? 
 
 In this first blog post I will be presenting the dataset. I have already done some [preprocessing](https://github.com/sdavidsson90/bike_crash/blob/main/code/data_preprocessing.R), but here we will be focusing on gaining a general understanding of the dataset. An important criterion for choosing a dataset suitable for a final thesis is to avoid acusations of plagiarizing. This dataset was posted on Kaggle with [an example of some simple EDA](https://www.kaggle.com/kerneler/starter-bike-crash-data-2007-2018-0b569cc6-d) attached - but no machine learning solutions. 
 
