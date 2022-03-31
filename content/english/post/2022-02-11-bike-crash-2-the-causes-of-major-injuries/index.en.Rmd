@@ -88,7 +88,9 @@ bike_crash0 <- bike_crash
 
 Here we see the frequency distribution of the variable categories. 
 
-As I demonstrated in [part 1](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/) this is very much a qualitative dataset. An obvious choice of machine learning methods is therefore to go with the classification type models. This calls for a recoding of our variable to a dichotomous outcome. 
+As I demonstrated in [part 1](https://sdavidsson.netlify.app/post/2022-01-24-introducing-the-bike-crash-data/) this is very much a qualitative dataset. An obvious choice of machine learning methods is therefore to go with the classification type models - regression type models simply wouldn't yield meaningful results for non-numerical data. 
+
+This calls for a recoding of our variable to a dichotomous outcome. 
 
 ```{r}
 # Outcome variable should be binary with "positive" outcome marked as 1.
@@ -232,11 +234,11 @@ collect_metrics(bc_bagged_fit) %>%
   flextable() %>% add_header_lines("Bagged random forest model")
 ```
 
-In the initial modelling we get a very high accuracy for our models - indicating that it makes correct predictions more than 90 % of the time. This would be a great result if it weren't for the class imbalance we noticed earlier. This means the dataset is biased towards predicting cases that belong to the major class, and thus doesn't necissarily predict the minor class accurately. This is why we need to look at the sensitivity measure. Around 1 % of the time we get correct predictions of the minor class. That's bad. Especially since that is the class we are most interested in predicting correctly. 
+In the initial modelling we get a very high accuracy for our models - indicating that it makes correct predictions more than 90 % of the time. This would be a great result if it weren't for the class imbalance we noticed earlier. This means the dataset is biased towards predicting cases that belong to the major class, and thus doesn't necissarily predict the minor class accurately. This is why we need to look at the sensitivity measure. Around 1 % of the time we get correct predictions of the minor class. Considering this is the class we are most interested in predicting correctly, that's bad!
 
-We could adjust our model threshold in order to get a higher sensitivity (catch more severe cases), but that would harm our accuracy. 
+We could adjust our model threshold in order to get a higher sensitivity (catch more severe cases), but that would harm our accuracy thus not resulting in better model. 
 
-Because of this we will now try two different algorithms to **resample the dataset**; the rose algorithm; and the downsample-algorithm. These two represent to different ways of resampling. The rose algorithm utilises a k-nearest neighbour algorithm to generate more observations of the minor class in order to balance the outcome class. The downsample algorithm balances the observations by reducing the major class. Therefore they represent two opposite approaches to handling class imbalance.
+Because of this we will now try two different algorithms to *resample the dataset*; the rose algorithm; and the downsample-algorithm. These two represent to different ways of resampling. The rose algorithm utilises a k-nearest neighbour algorithm to generate more observations of the minor class in order to balance the outcome class. The downsample algorithm balances the observations by reducing the major class. Therefore they represent two opposite approaches to handling class imbalance.
 
 ```{r}
 # For one recipe set we apply the rose algorithm
@@ -317,13 +319,13 @@ It also looks as if the downsampling algorithm has had a positive effect on both
 
 But which model do we choose? Since both tables indicate very similar results, neither model is a clear winner.
 
-Considering there is an element of randomness in both the initial train/test-splitting of the dataset and in applying the resampling algorithms, it is very possible that these minute differences could pushed in either direction if we were to set a different seed.
+Considering there is an element of randomness in both the initial train/test-splitting of the dataset and in applying the resampling algorithms, it is very possible that these minute differences could pushed in either direction if we were to set different seeds. 
 
 We want to select the model that is best able to predict true positives (ie. has the highest sensitivity) but also  retains an ability to correctly predict true negatives (high specificity). The ROC-AUC is a measure that looks at both the specificity and sensitivity combined and is therefore useful for comparing models. In this case however I would argue that it would be misleading to select the model with the highest AUC. This is because of the class imbalance problem in our outcome variable. Without resampling the ROC-AUC is (somewhat) high for both the logistic regression model and the random forest model. 
 
 For our business problem it is however critical that our model is able to capture the effects leading to major injuries. I therefore suggest we go with the logistic regression model with the rose resampling.
 
-```{r}
+```{r, echo = FALSE}
 # Looks like this one is the winner
 collect_metrics(bc_logreg_rose_fit)
 
