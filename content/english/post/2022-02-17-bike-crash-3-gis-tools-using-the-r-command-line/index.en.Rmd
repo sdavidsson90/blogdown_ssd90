@@ -425,7 +425,7 @@ tm_shape(kde_wake) +
 
 ```
 
-#### So what have we learned from this?
+#### What have we learned from this?
 
 - We have demonstrated how 2D-KDE can be used as a data visualisation method. It is us a useful method that smooths out data points and renders *belts* or *blobs* where the occurance in question is observed. 
 - We experimented with the bandwidth settings and found that a methodical estimation is useful, but also that manual adjustment is allowed for more effective communication of the desired messsage.

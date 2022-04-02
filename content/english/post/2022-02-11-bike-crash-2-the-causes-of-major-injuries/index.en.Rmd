@@ -83,7 +83,6 @@ bike_crash0 <- bike_crash
  ) %>% 
   ggplotly(tooltip = c("text")) %>% 
   config(displayModeBar = F)
-
 ```
 
 Here we see the frequency distribution of the variable categories. 
@@ -186,7 +185,7 @@ bike_test <- bike_split %>% testing()
 
 # Cross validation for folds for higher prediction accuracy
 set.seed(666)
-bike_folds <- vfold_cv(bike_train, v = 2, prop = 0.75,  strata = crash_sevr)
+bike_folds <- vfold_cv(bike_train, v = 10, prop = 0.75,  strata = crash_sevr)
 
 # Define model test metrics
 bike_metrics <- metric_set(accuracy, roc_auc, sensitivity, specificity)
@@ -217,7 +216,7 @@ bc_bagged_wf <- workflow() %>%
 ctrl_preds <- control_resamples(save_pred = TRUE)
 
 # Let's fit!
-bc_logreg_fit <- fit_resamples(bc_logreg_wf, bike_folds, metrics = custom_metrics,  control = ctrl_preds) 
+bc_logreg_fit <- fit_resamples(bc_logreg_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds) 
 bc_bagged_fit <- fit_resamples(bc_bagged_wf, bike_folds, metrics = custom_metrics, control = ctrl_preds)
 
 # And evaluate
@@ -294,7 +293,6 @@ collect_metrics(bc_bagged_rose_fit) %>%
   flextable() %>% 
   add_header_lines("Bagged random forest model (with rose-resampling)")
 
-
 # And evaluate the downsample algorithm 
 collect_metrics(bc_logreg_down_fit) %>% 
   select(-.config, -n) %>% 
@@ -325,41 +323,36 @@ We want to select the model that is best able to predict true positives (ie. has
 
 For our business problem it is however critical that our model is able to capture the effects leading to major injuries. I therefore suggest we go with the logistic regression model with the rose resampling.
 
-```{r, echo = FALSE}
-# Looks like this one is the winner
-collect_metrics(bc_logreg_rose_fit)
+#### Evaluating the model on the test set
 
-# Confusion matrix
-(tibble(
-  pred = collect_predictions(bc_logreg_rose_fit)$.pred_class,
-  truth = bike_train$crash_sevr) %>% 
-  conf_mat(truth = truth, estimate = pred) %>% autoplot(type = "heatmap") + 
-    ggtitle("Confusion matrix for logistic  \n regression model with rose-resampling") +
-    theme(panel.grid.major = element_blank() )) 
-```
+Running our model on test data yields quite similar results. We would of course prefer a model that comes closer to a 100 % in accuracy, but this was not possible this time. 
 
+There are elements of randomness in the splitting procedure (into training and testing set) and in the rose-algorithm. Setting a different seed might yield different results, but as these would be due to chance it is not a very good strategy for model improvement.
+
+As I showed in my first post this is very much a qualitative dataset. This greatly limits the variation in the dataset, 
 
 
 ```{r}
 # EVALUATE MODEL ON TEST DATA
 bike_last_fit <- last_fit(bc_logreg_rose_wf, bike_split)
 
-# Test_metrics
+# Define test metrics
 results <- tibble(
   estimate = bike_last_fit$.predictions[[1]]$.pred_class,
   truth = bike_test$crash_sevr)
 
-accuracy(results, truth, estimate)
-
+# View model test metrics
 bind_rows(
 collect_metrics(bike_last_fit),
 sensitivity(results, truth, estimate),
 specificity(results, truth, estimate))%>%
   select(-.config, -.estimator) %>% 
   mutate(.estimate = round(.estimate, 3)) %>% 
-  flextable() %>%  width(width = 2.4) %>% 
-  add_header_lines("Logistic regression model (with rose-resampling) - kørt på test-data")
+  flextable() %>%  width(width = 1.71) %>% 
+  add_header_lines("Logistic regression model (with rose-resampling)")
+```
 
+```{r}
 # ROC-curve
 roc_data <- tibble(
 pred  = bike_last_fit$.predictions[[1]] %>% pull(`.pred_Major Injuries`), 
@@ -374,6 +367,12 @@ roc_curve(roc_data,
   geom_abline(lty = 3)
 ```
 
+
+With these test metrics in mind we can take a cautious look at the factors contributing to the serious accidents. In order to make interpretation easier I have exponentiated the estimates, which displays the results as odds-ratios. I have also filtered out variables that have a p-value below 0.05, so only significant effects are displayed. Furthermore standard errors are displayed as the error bars sticking out from the OR. 
+
+Overall road conditions seem to be a contributing factor. Gravel roads increase the likelihood of major accidents by a factor of 4.6. It is likely that these roads also have a number of other features interacting with the crash probabilities. We could try to explore these interaction effects methodically but that is a proces that requires great computational power and I will therefore restrain from doing this on my dual-core PC. An obvious recommendation for decision makers would be to improve conditions on gravel roads. 
+
+Also flashing stop and go signals could be replaced with a regular stop and go signal and a dramatic effect would be achieved. 
 
 
 ```{r, fig.width = 5, fig.height = 15}
@@ -392,33 +391,24 @@ bike_last_fit %>%
   pull(.workflow) %>% 
   pluck(1) %>% 
   tidy(exponentiate = TRUE) %>% 
-  filter(term != "(Intercept)") %>% 
-    mutate(
-      term = vars) %>% 
-  filter(p.value < 0.05) %>% 
+  filter(term != "(Intercept)",
+         p.value < 0.05) %>% 
   ggplot(aes(x = estimate, y = fct_reorder(term, estimate))) + 
   geom_point(aes(x = estimate)) +
   geom_errorbar(aes(
     xmin = estimate - std.error,
     xmax = estimate  + std.error )) +
-  labs(x = "Odds Ratio + Standard Error", y = "Predictor Variable") 
+  labs(x = "Odds Ratio + standard_error", y = "Variable")
 ) %>% 
-  ggplotly(tooltip = "estimate", autosize = F, height = 750) %>% 
+  ggplotly(tooltip = "estimate", autosize = F, height = 750, width = 700) %>% 
   config(displayModeBar = F)
-
-
-# #last_fit_table <-
-# bike_last_fit %>%
-#   pull(.workflow) %>%
-#   pluck(1) %>%
-#   tidy(exponentiate = TRUE) %>%
-#   filter(term != "(Intercept)",
-#          p.value < 0.05) %>%
-#   arrange(term) %>%
-#   mutate(p.value = round(p.value, 3),
-#          statistic = round(statistic, 3),
-#          std.error = round(std.error, 3),
-#          estimate = round(estimate, 3)) %>%
-#   print(n = 100)
-
 ```
+
+#### What have we learned from this?
+
+- We set out to construct a model that could identify environmental factors that increase the risk of accidents labeled *serious injuries* or *killed*.
+- We discovered a large class imbalance between these occurances and the rest. This is of course good for the cyclists of North Carolina but presents a challange to our modelling efforts.
+- Therefore I tested two *rebalancing algorithms* that represent two different approaches. The *rose algorithm* (creates more observations utilising a k-means algorithm) and a *downsampling algorithm* (reducing the number of observations in the larger class).
+- The overall predictive power of our models was drastically improved using these methods, but we were unable to obtain an accuracy above 72 %. It's certainly better than simple guesswork, but not impressive. 
+- I therefore suggest that the contributing features are examined with some caution.
+- With this in mind we can suffice decision makers with a list of road features that could be improved to gain the biggest effect. Especially improving condition gravel roads and replacing "flashing stop and go signals" with "regular stop and go signals" would produce dramatic effects.
