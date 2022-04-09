@@ -56,7 +56,7 @@ icon = "fab fa-github"
 title = "GitHub"
 url = "https://github.com/sdavidsson90"
 
-[[socialIcons]]
-icon = "fas fa-envelope"
-title = "e-mail"
-url = "mailto:sdavidsson90@outlook.dk"
+# [[socialIcons]]
+# icon = "fas fa-envelope"
+# title = "e-mail"
+# url = "mailto:sdavidsson90@outlook.dk"
